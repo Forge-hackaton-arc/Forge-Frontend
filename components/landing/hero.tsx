@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Atmosphere } from "./atmosphere";
+import { Atmosphere } from "@/components/common/atmosphere";
 import { BoardPreview } from "./board-preview";
 
 export function Hero() {

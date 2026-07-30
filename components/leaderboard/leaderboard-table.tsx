@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Trophy } from "lucide-react";
 import { useReputation } from "@/hooks/use-reputation";
+import { Atmosphere } from "@/components/common/atmosphere";
 import { DataSourceBanner } from "@/components/common/data-source-banner";
 import { AddressPill } from "@/components/common/address-pill";
 import { Identicon } from "@/components/common/identicon";
@@ -17,10 +18,7 @@ export function LeaderboardTable() {
 
   return (
     <div className="relative">
-      <div
-        className="pointer-events-none absolute -top-20 left-1/2 -z-10 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-status-submitted/10 blur-[110px]"
-        aria-hidden
-      />
+      <Atmosphere className="h-[36rem]" />
       <div className="container flex flex-col gap-8 py-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>

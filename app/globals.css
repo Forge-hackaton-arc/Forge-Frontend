@@ -40,6 +40,24 @@
     --status-completed: 152 55% 32%;
     --status-rejected: 350 70% 45%;
     --status-expired: 215 15% 45%;
+
+    /* Ambient background glow tones — aliased to the theme accents by
+       default, overridden per-network below so switching to mainnet warms
+       the whole site's atmosphere without touching interactive colors. */
+    --atmo-1: var(--primary);
+    --atmo-2: var(--accent);
+    --atmo-3: var(--status-completed);
+  }
+
+  /* Testnet is the safe default (teal/violet/green, matches --primary etc).
+     Mainnet shifts the ambient glow warm (amber/rose/gold) as a constant,
+     low-key "this is real" signal — deliberately not touching --primary so
+     buttons and links stay legible and consistent, only the background mood
+     changes. Paired with the network badge in the header, which is explicit. */
+  [data-network="mainnet"] {
+    --atmo-1: 24 88% 55%;
+    --atmo-2: 350 78% 56%;
+    --atmo-3: 38 92% 52%;
   }
 
   .dark {

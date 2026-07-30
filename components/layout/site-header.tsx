@@ -6,6 +6,7 @@ import { Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
 import { IdentitySwitcher } from "./identity-switcher";
+import { NetworkToggle } from "./network-toggle";
 
 const NAV = [
   { href: "/board", label: "Board" },
@@ -47,10 +48,7 @@ export function SiteHeader() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-1.5 rounded-full border border-border/70 px-2.5 py-1 text-xs text-muted-foreground sm:inline-flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-status-completed animate-pulse-dot" />
-              Arc Testnet
-            </span>
+            <NetworkToggle />
             <IdentitySwitcher />
             <ThemeToggle />
           </div>

@@ -5,8 +5,10 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { IdentityProvider } from "@/providers/identity-provider";
+import { NetworkProvider } from "@/providers/network-provider";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TickerBar } from "@/components/layout/ticker-bar";
+import { NetworkFooterNote } from "@/components/layout/network-footer-note";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -33,22 +35,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={cn(display.variable, serif.variable, sans.variable, mono.variable, "font-sans")}>
         <ThemeProvider>
-          <IdentityProvider>
-            <TooltipProvider delayDuration={200}>
-              <div className="relative flex min-h-screen flex-col">
-                <SiteHeader />
-                <TickerBar />
-                <main className="flex-1">{children}</main>
-                <footer className="border-t border-border py-6">
-                  <div className="container flex flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
-                    <span>Forge — Encode Club × Circle &quot;Build on Arc&quot; hackathon, Agentic Economy track.</span>
-                    <span className="font-mono">Arc Testnet · chain id 5042002</span>
-                  </div>
-                </footer>
-              </div>
-              <Toaster position="bottom-right" />
-            </TooltipProvider>
-          </IdentityProvider>
+          <NetworkProvider>
+            <IdentityProvider>
+              <TooltipProvider delayDuration={200}>
+                <div className="relative flex min-h-screen flex-col">
+                  <SiteHeader />
+                  <TickerBar />
+                  <main className="flex-1">{children}</main>
+                  <footer className="border-t border-border py-6">
+                    <div className="container flex flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
+                      <span>Forge — Encode Club × Circle &quot;Build on Arc&quot; hackathon, Agentic Economy track.</span>
+                      <NetworkFooterNote />
+                    </div>
+                  </footer>
+                </div>
+                <Toaster position="bottom-right" />
+              </TooltipProvider>
+            </IdentityProvider>
+          </NetworkProvider>
         </ThemeProvider>
       </body>
     </html>
