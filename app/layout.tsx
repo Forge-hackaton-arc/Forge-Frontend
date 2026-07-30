@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type * as React from "react";
-import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import { Space_Grotesk, Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/providers/theme-provider";
@@ -11,6 +11,14 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-display", weight: ["500", "600", "700"] });
+// Editorial serif for marketing headlines — the single biggest lever against
+// the generic-SaaS look, paired with italic for one accent word per headline.
+const serif = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+});
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500", "600"] });
 
@@ -23,7 +31,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn(display.variable, sans.variable, mono.variable, "font-sans")}>
+      <body className={cn(display.variable, serif.variable, sans.variable, mono.variable, "font-sans")}>
         <ThemeProvider>
           <IdentityProvider>
             <TooltipProvider delayDuration={200}>

@@ -14,6 +14,7 @@ const config: Config = {
         display: ["var(--font-display)", "sans-serif"],
         sans: ["var(--font-sans)", "sans-serif"],
         mono: ["var(--font-mono)", "monospace"],
+        serif: ["var(--font-serif)", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",

@@ -1,6 +1,8 @@
 import { Hero } from "@/components/landing/hero";
 import { StatsStrip } from "@/components/landing/stats-strip";
 import { ActivityFeed } from "@/components/landing/activity-feed";
+import { QuoteCallout } from "@/components/landing/quote-callout";
+import { TrustSection } from "@/components/landing/trust-section";
 
 export default function HomePage() {
   return (
@@ -13,6 +15,8 @@ export default function HomePage() {
         </h2>
         <ActivityFeed />
       </section>
+      <QuoteCallout />
+      <TrustSection />
     </div>
   );
 }
