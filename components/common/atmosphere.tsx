@@ -1,40 +1,27 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-
-// Soft drifting glow — replaces a flat panel background with depth, the way
-// both reference sites (bokeh orbs / generative mesh) use atmosphere instead
-// of solid color to make a page feel premium rather than templated. Shared
-// across every page so the whole site reads as one consistent background,
-// not just the landing hero. Colors come from --atmo-1/2/3 (see globals.css)
-// so switching networks (see providers/network-provider.tsx) shifts the mood
-// everywhere at once.
-export function Atmosphere({ className }: { className?: string }) {
+// Soft blurred glow behind the whole app — mounted once in the root layout
+// (not per-page) so it covers the full viewport at any scroll position.
+//
+// Deliberately static (no animation). A blurred, continuously-transformed
+// layer is one of the most expensive things a browser can paint — measured
+// with it animating, client-side route changes went from ~200-700ms to
+// 1-3s+. The color wash itself is what makes the background feel premium;
+// the drift wasn't worth 4x'ing every navigation. Colors come from
+// --atmo-1/2/3 (see globals.css) so switching networks
+// (providers/network-provider.tsx) shifts the mood everywhere at once.
+export function Atmosphere() {
   return (
-    <div
-      className={cn(
-        "pointer-events-none absolute inset-x-0 top-0 -z-10 h-[40rem] overflow-hidden",
-        className
-      )}
-    >
-      <motion.div
-        className="absolute -left-40 -top-40 h-[32rem] w-[32rem] rounded-full blur-[110px]"
-        style={{ backgroundColor: "hsl(var(--atmo-1) / 0.25)" }}
-        animate={{ x: [0, 40, 0], y: [0, 30, 0] }}
-        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      <div
+        className="absolute -left-[10vw] -top-[10vh] h-[55vh] w-[55vw] rounded-full blur-[100px]"
+        style={{ backgroundColor: "hsl(var(--atmo-1) / 0.2)" }}
       />
-      <motion.div
-        className="absolute -right-32 top-1/4 h-[28rem] w-[28rem] rounded-full blur-[110px]"
-        style={{ backgroundColor: "hsl(var(--atmo-2) / 0.2)" }}
-        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
-        transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
+      <div
+        className="absolute -right-[12vw] top-[8vh] h-[50vh] w-[50vw] rounded-full blur-[100px]"
+        style={{ backgroundColor: "hsl(var(--atmo-2) / 0.16)" }}
       />
-      <motion.div
-        className="absolute bottom-0 left-1/3 h-[26rem] w-[26rem] rounded-full blur-[120px]"
+      <div
+        className="absolute bottom-[-12vh] left-[15vw] h-[50vh] w-[50vw] rounded-full blur-[110px]"
         style={{ backgroundColor: "hsl(var(--atmo-3) / 0.12)" }}
-        animate={{ x: [0, 20, 0], y: [0, -20, 0] }}
-        transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
       />
       <div
         className="absolute inset-0 opacity-[0.15]"

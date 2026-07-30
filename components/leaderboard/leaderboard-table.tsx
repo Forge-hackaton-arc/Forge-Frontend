@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Trophy } from "lucide-react";
 import { useReputation } from "@/hooks/use-reputation";
-import { Atmosphere } from "@/components/common/atmosphere";
 import { DataSourceBanner } from "@/components/common/data-source-banner";
 import { AddressPill } from "@/components/common/address-pill";
 import { Identicon } from "@/components/common/identicon";
@@ -17,9 +16,7 @@ export function LeaderboardTable() {
   const rest = ranked.slice(3);
 
   return (
-    <div className="relative">
-      <Atmosphere className="h-[36rem]" />
-      <div className="container flex flex-col gap-8 py-8">
+    <div className="container flex flex-col gap-8 py-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-serif text-3xl font-medium tracking-tight">Reputation leaderboard</h1>
@@ -78,7 +75,6 @@ export function LeaderboardTable() {
             )}
           </>
         )}
-      </div>
     </div>
   );
 }

@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { ArrowRight, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Atmosphere } from "@/components/common/atmosphere";
 import { BoardPreview } from "./board-preview";
 
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
-      <Atmosphere />
       <div className="container grid gap-12 py-16 sm:py-24 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-8">
         <div className="flex flex-col items-start gap-6">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-panel/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">

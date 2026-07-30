@@ -9,6 +9,7 @@ import { NetworkProvider } from "@/providers/network-provider";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TickerBar } from "@/components/layout/ticker-bar";
 import { NetworkFooterNote } from "@/components/layout/network-footer-note";
+import { Atmosphere } from "@/components/common/atmosphere";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <NetworkProvider>
             <IdentityProvider>
               <TooltipProvider delayDuration={200}>
+                <Atmosphere />
                 <div className="relative flex min-h-screen flex-col">
                   <SiteHeader />
                   <TickerBar />

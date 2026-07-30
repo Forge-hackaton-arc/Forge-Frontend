@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useJobs } from "@/hooks/use-jobs";
 import { JOB_STATUS_ORDER } from "@/lib/constants";
-import { Atmosphere } from "@/components/common/atmosphere";
 import { DataSourceBanner } from "@/components/common/data-source-banner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -41,9 +40,7 @@ export function KanbanBoard() {
   }
 
   return (
-    <div className="relative">
-      <Atmosphere className="h-[36rem]" />
-      <div className="container flex flex-col gap-8 py-8">
+    <div className="container flex flex-col gap-8 py-8">
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -128,7 +125,6 @@ export function KanbanBoard() {
             if (source === "live") refetch();
           }}
         />
-      </div>
     </div>
   );
 }
