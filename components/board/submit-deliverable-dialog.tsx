@@ -51,7 +51,7 @@ export function SubmitDeliverableDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="w-full">Submit deliverable</Button>
+        <Button className="w-full rounded-full">Submit deliverable</Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

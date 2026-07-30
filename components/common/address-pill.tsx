@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { truncateAddress } from "@/lib/format";
 import { explorerAddressUrl, explorerTxUrl } from "@/lib/constants";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Identicon } from "./identicon";
 
 interface AddressPillProps {
   value: string;
@@ -30,11 +31,12 @@ export function AddressPill({ value, kind = "address", isMock = false, className
   const body = (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-xs",
+        "inline-flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2 font-mono text-xs",
         isMock ? "border-dashed border-muted-foreground/40 text-muted-foreground" : "border-border text-foreground/90",
         className
       )}
     >
+      {kind === "address" && <Identicon seed={value} size={16} />}
       {truncateAddress(value)}
       <button onClick={copy} className="opacity-60 transition-opacity hover:opacity-100" aria-label="Copy">
         {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}

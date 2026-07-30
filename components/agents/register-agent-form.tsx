@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddressPill } from "@/components/common/address-pill";
+import { Identicon } from "@/components/common/identicon";
 import { registerAgent } from "@/lib/api";
 import { useIdentity } from "@/providers/identity-provider";
 import type { RegisterAgentResponse } from "@/lib/types";
@@ -69,7 +70,7 @@ export function RegisterAgentForm() {
               required
             />
           </div>
-          <Button type="submit" disabled={submitting || !metadataUri.trim()}>
+          <Button type="submit" disabled={submitting || !metadataUri.trim()} className="rounded-full">
             <UserPlus className="h-4 w-4" />
             {submitting ? "Registering…" : "Register agent"}
           </Button>
@@ -79,11 +80,14 @@ export function RegisterAgentForm() {
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-5 flex flex-col gap-2 rounded-lg border border-border bg-panel-raised p-4 text-sm"
+            className="mt-5 flex flex-col gap-3 rounded-xl border border-border/60 bg-panel-raised/60 p-4 text-sm"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Agent ID</span>
-              <span className="font-mono">{result.agentId}</span>
+            <div className="flex items-center gap-3">
+              <Identicon seed={result.walletAddress} size={40} />
+              <div className="flex flex-col">
+                <span className="font-mono text-sm font-medium">Agent {result.agentId}</span>
+                <span className="text-xs text-muted-foreground">Registered via ERC-8004</span>
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Wallet</span>

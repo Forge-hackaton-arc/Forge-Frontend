@@ -5,6 +5,7 @@ import { Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatUsdc, relativeTime } from "@/lib/format";
 import { AddressPill } from "@/components/common/address-pill";
+import { JOB_STATUS_COLOR_VAR } from "@/lib/constants";
 import type { JobListItem } from "@/lib/types";
 
 export function JobCard({
@@ -35,21 +36,23 @@ export function JobCard({
       }}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.2 }}
+      style={{ borderLeftColor: `hsl(var(${JOB_STATUS_COLOR_VAR[job.status]}))` }}
       className={cn(
-        "w-full cursor-pointer rounded-lg border border-border bg-panel p-4 text-left transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "w-full cursor-pointer rounded-xl border border-l-[3px] border-border/60 bg-panel/80 p-4 text-left shadow-md shadow-black/[0.02] backdrop-blur-sm transition-shadow hover:shadow-xl hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:shadow-black/20",
         highlighted && "animate-flash-highlight"
       )}
     >
       <p className="line-clamp-2 text-sm text-foreground/90">{job.description}</p>
       <div className="mt-3 flex items-center justify-between">
-        <span className="inline-flex items-center gap-1 font-mono text-sm font-medium text-status-completed">
+        <span className="inline-flex items-center gap-1 font-mono text-base font-semibold text-status-completed">
           <Coins className="h-3.5 w-3.5" />
           {formatUsdc(job.budget)}
         </span>
         <span className="text-[11px] text-muted-foreground">{relativeTime(job.updatedAt)}</span>
       </div>
-      <div className="mt-2 flex items-center justify-between">
+      <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-2.5">
         <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</span>
         <AddressPill value={job.providerAgentId} className="text-[11px]" />
       </div>

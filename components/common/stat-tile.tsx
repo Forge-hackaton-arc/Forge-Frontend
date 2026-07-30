@@ -35,13 +35,16 @@ export function StatTile({ label, value, suffix, prefix, decimals = 0, icon, cla
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4 }}
-      className={cn("rounded-lg border border-border bg-panel p-5", className)}
+      className={cn(
+        "rounded-xl border border-border/60 bg-panel/80 p-5 shadow-md shadow-black/[0.02] backdrop-blur-sm transition-shadow hover:shadow-lg dark:shadow-black/20",
+        className
+      )}
     >
       <div className="flex items-center justify-between text-muted-foreground">
         <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
         {icon}
       </div>
-      <span ref={ref} className="mt-2 block font-mono text-3xl font-semibold tabular-nums tracking-tight text-foreground">
+      <span ref={ref} className="mt-2 block font-serif text-4xl font-medium tabular-nums tracking-tight text-foreground">
         {prefix}
         {display.toFixed(decimals)}
         {suffix}

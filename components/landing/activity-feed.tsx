@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Briefcase, ArrowUpRight, Activity } from "lucide-react";
+import { ArrowUpRight, Activity } from "lucide-react";
 import { useJobs } from "@/hooks/use-jobs";
 import { usePayments } from "@/hooks/use-payments";
 import { StatusBadge } from "@/components/common/status-badge";
 import { AddressPill } from "@/components/common/address-pill";
+import { Identicon } from "@/components/common/identicon";
 import { relativeTime, formatUsdc } from "@/lib/format";
 import { EmptyState } from "@/components/common/empty-state";
 
@@ -32,12 +33,12 @@ export function ActivityFeed() {
       {feed.map((item, i) => (
         <li
           key={i}
-          className="flex items-center justify-between gap-3 rounded-lg border border-border bg-panel px-4 py-3 text-sm"
+          className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-panel/80 px-4 py-3 text-sm shadow-sm backdrop-blur-sm"
         >
           {item.kind === "job" ? (
             <>
               <div className="flex min-w-0 items-center gap-3">
-                <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Identicon seed={item.job.providerAgentId || "unassigned"} size={22} />
                 <span className="truncate text-foreground/90">{item.job.description}</span>
               </div>
               <div className="flex shrink-0 items-center gap-3">

@@ -1,8 +1,10 @@
 "use client";
 
+import { Coins, Calendar, Clock } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { StatusBadge } from "@/components/common/status-badge";
 import { AddressPill } from "@/components/common/address-pill";
+import { Identicon } from "@/components/common/identicon";
 import { Separator } from "@/components/ui/separator";
 import { SubmitDeliverableDialog } from "./submit-deliverable-dialog";
 import { ValidateJobPanel, type ValidationResult } from "./validate-job-panel";
@@ -41,32 +43,39 @@ export function JobDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col gap-5 overflow-y-auto">
+      <SheetContent className="flex flex-col gap-6 overflow-y-auto">
         <SheetHeader>
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs text-muted-foreground">Job #{job.jobId}</span>
             <StatusBadge status={job.status} />
           </div>
-          <SheetTitle>{job.description}</SheetTitle>
+          <SheetTitle className="font-serif text-2xl font-medium leading-snug">{job.description}</SheetTitle>
           <SheetDescription>{JOB_STATUS_DESCRIPTION[job.status]}</SheetDescription>
         </SheetHeader>
 
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide text-muted-foreground">Budget</span>
-            <span className="font-mono font-medium text-status-completed">{formatUsdc(job.budget)}</span>
+        <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-panel-raised/60 p-3">
+          <Identicon seed={job.providerAgentId} size={36} />
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</span>
+            <AddressPill value={job.providerAgentId} className="text-xs" />
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide text-muted-foreground">Provider</span>
-            <AddressPill value={job.providerAgentId} />
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 text-sm">
+          <div className="flex flex-col items-start gap-1.5 rounded-xl border border-border/60 bg-panel-raised/40 p-3">
+            <Coins className="h-4 w-4 text-status-completed" />
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Budget</span>
+            <span className="font-mono font-semibold text-status-completed">{formatUsdc(job.budget)}</span>
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide text-muted-foreground">Created</span>
-            <span>{relativeTime(job.createdAt)}</span>
+          <div className="flex flex-col items-start gap-1.5 rounded-xl border border-border/60 bg-panel-raised/40 p-3">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Created</span>
+            <span className="text-xs">{relativeTime(job.createdAt)}</span>
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide text-muted-foreground">Updated</span>
-            <span>{relativeTime(job.updatedAt)}</span>
+          <div className="flex flex-col items-start gap-1.5 rounded-xl border border-border/60 bg-panel-raised/40 p-3">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Updated</span>
+            <span className="text-xs">{relativeTime(job.updatedAt)}</span>
           </div>
         </div>
 
@@ -80,7 +89,7 @@ export function JobDetailSheet({
         <Separator />
 
         {extra?.deliverableHash && (
-          <div className="flex flex-col gap-2 rounded-lg border border-border bg-panel-raised p-4 text-xs">
+          <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-panel-raised/40 p-4 text-xs">
             <span className="uppercase tracking-wide text-muted-foreground">Deliverable submitted</span>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Hash</span>
@@ -102,7 +111,7 @@ export function JobDetailSheet({
         )}
 
         {job.status === "Completed" && !extra?.validation && (
-          <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+          <p className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
             Validated in an earlier session — score and reasoning for past validations aren&apos;t returned by
             <code className="mx-1 font-mono">GET /api/jobs</code>
             today, only recorded in Supabase&apos;s <code className="font-mono">validations</code> table.

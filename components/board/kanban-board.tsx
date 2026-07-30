@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { KanbanColumn } from "./kanban-column";
 import { CreateJobDialog } from "./create-job-dialog";
+import { PipelineSummary } from "./pipeline-summary";
 import { JobDetailSheet, type JobSessionExtra } from "./job-detail-sheet";
 import type { JobListItem, SubmitDeliverableResponse } from "@/lib/types";
 import type { ValidationResult } from "./validate-job-panel";
@@ -39,78 +40,97 @@ export function KanbanBoard() {
   }
 
   return (
-    <div className="container flex flex-col gap-6 py-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Job board</h1>
-          <p className="text-sm text-muted-foreground">Open → Funded → Submitted → Completed, escrowed in USDC.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <DataSourceBanner source={source} />
-          <CreateJobDialog
-            onCreated={(response, isMock, meta) => {
-              const newJob: JobListItem = {
-                jobId: response.jobId,
-                description: `Write a 200-word summary of ${meta.topic} with 3 cited facts.`,
-                budget: meta.budget,
-                status: response.status,
-                providerAgentId: meta.providerAgentId,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              };
-              setLocalJobs((prev) => [newJob, ...prev]);
-              setExtras((prev) => ({ ...prev, [response.jobId]: { createTxHash: response.txHash, createTxIsMock: isMock } }));
-            }}
-          />
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex flex-col gap-6">
-          {JOB_STATUS_ORDER.map((s) => (
-            <div key={s} className="flex flex-col gap-2.5">
-              <Skeleton className="h-5 w-24" />
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-24 w-full" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {JOB_STATUS_ORDER.map((status, i) => (
-            <React.Fragment key={status}>
-              {i > 0 && <Separator />}
-              <KanbanColumn
-                status={status}
-                jobs={grouped.get(status) ?? []}
-                highlighted={highlighted}
-                onSelect={openJob}
-              />
-            </React.Fragment>
-          ))}
-        </div>
-      )}
-
-      <JobDetailSheet
-        job={selected}
-        extra={selected ? extras[selected.jobId] : undefined}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        onSubmitted={(jobId, response: SubmitDeliverableResponse, isMock) => {
-          patchJob(jobId, { status: response.status, updatedAt: new Date().toISOString() });
-          setExtras((prev) => ({
-            ...prev,
-            [jobId]: { ...prev[jobId], submitTxHash: response.txHash, submitTxIsMock: isMock, deliverableHash: response.deliverableHash },
-          }));
-        }}
-        onValidated={(jobId, result: ValidationResult) => {
-          patchJob(jobId, { status: result.status, updatedAt: new Date().toISOString() });
-          setExtras((prev) => ({ ...prev, [jobId]: { ...prev[jobId], validation: result } }));
-          if (source === "live") refetch();
-        }}
+    <div className="relative">
+      <div
+        className="pointer-events-none absolute -top-20 left-1/2 -z-10 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-primary/10 blur-[110px]"
+        aria-hidden
       />
+      <div className="container flex flex-col gap-8 py-8">
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="font-serif text-3xl font-medium tracking-tight">Job board</h1>
+              <p className="text-sm text-muted-foreground">
+                Open → Funded → Submitted → Completed, escrowed in USDC.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <DataSourceBanner source={source} />
+              <CreateJobDialog
+                onCreated={(response, isMock, meta) => {
+                  const newJob: JobListItem = {
+                    jobId: response.jobId,
+                    description: `Write a 200-word summary of ${meta.topic} with 3 cited facts.`,
+                    budget: meta.budget,
+                    status: response.status,
+                    providerAgentId: meta.providerAgentId,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  };
+                  setLocalJobs((prev) => [newJob, ...prev]);
+                  setExtras((prev) => ({
+                    ...prev,
+                    [response.jobId]: { createTxHash: response.txHash, createTxIsMock: isMock },
+                  }));
+                }}
+              />
+            </div>
+          </div>
+          {!loading && <PipelineSummary jobs={localJobs} />}
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col gap-6">
+            {JOB_STATUS_ORDER.map((s) => (
+              <div key={s} className="flex flex-col gap-2.5">
+                <Skeleton className="h-5 w-24" />
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-24 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {JOB_STATUS_ORDER.map((status, i) => (
+              <React.Fragment key={status}>
+                {i > 0 && <Separator />}
+                <KanbanColumn
+                  status={status}
+                  jobs={grouped.get(status) ?? []}
+                  highlighted={highlighted}
+                  onSelect={openJob}
+                />
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+
+        <JobDetailSheet
+          job={selected}
+          extra={selected ? extras[selected.jobId] : undefined}
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          onSubmitted={(jobId, response: SubmitDeliverableResponse, isMock) => {
+            patchJob(jobId, { status: response.status, updatedAt: new Date().toISOString() });
+            setExtras((prev) => ({
+              ...prev,
+              [jobId]: {
+                ...prev[jobId],
+                submitTxHash: response.txHash,
+                submitTxIsMock: isMock,
+                deliverableHash: response.deliverableHash,
+              },
+            }));
+          }}
+          onValidated={(jobId, result: ValidationResult) => {
+            patchJob(jobId, { status: result.status, updatedAt: new Date().toISOString() });
+            setExtras((prev) => ({ ...prev, [jobId]: { ...prev[jobId], validation: result } }));
+            if (source === "live") refetch();
+          }}
+        />
+      </div>
     </div>
   );
 }
