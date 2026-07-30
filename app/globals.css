@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 25% 98%;
+    --foreground: 222 47% 11%;
+
+    --panel: 0 0% 100%;
+    --panel-raised: 210 20% 96%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 15% 42%;
+
+    --primary: 174 65% 34%;
+    --primary-foreground: 0 0% 100%;
+
+    --accent: 262 55% 52%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --ring: 174 65% 34%;
+    --radius: 0.625rem;
+
+    --status-open: 205 85% 45%;
+    --status-funded: 262 55% 52%;
+    --status-submitted: 38 92% 42%;
+    --status-completed: 152 55% 32%;
+    --status-rejected: 350 70% 45%;
+    --status-expired: 215 15% 45%;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 30% 92%;
+
+    --panel: 222 40% 9%;
+    --panel-raised: 222 35% 13%;
+
+    --card: 222 40% 9%;
+    --card-foreground: 210 30% 92%;
+
+    --popover: 222 42% 8%;
+    --popover-foreground: 210 30% 92%;
+
+    --border: 222 25% 18%;
+    --input: 222 25% 18%;
+
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 15% 62%;
+
+    --primary: 174 70% 48%;
+    --primary-foreground: 222 47% 6%;
+
+    --accent: 262 65% 68%;
+    --accent-foreground: 222 47% 6%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 210 30% 96%;
+
+    --ring: 174 70% 48%;
+
+    --status-open: 205 90% 62%;
+    --status-funded: 262 65% 68%;
+    --status-submitted: 38 95% 58%;
+    --status-completed: 152 55% 52%;
+    --status-rejected: 350 80% 62%;
+    --status-expired: 215 15% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  html.light {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.035) 1px, transparent 1px);
+    background-size: 44px 44px;
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.35);
+  }
+
+  /* Thin, low-contrast scrollbars fit the console aesthetic better than the browser default. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 999px;
+    border: 2px solid hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .font-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
