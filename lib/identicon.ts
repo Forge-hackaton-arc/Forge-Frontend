@@ -1,11 +1,10 @@
-// Deterministic gradient identity for a wallet address — every reference site
-// studied (Stax, Relay, shadcn, 21st.dev) leans on real, tangible content
-// over placeholders. Right now every agent in Forge is just gray monospace
-// text; this gives each one a unique, consistent visual identity the way
-// Blockies/Jazzicon do in most wallet UIs, without pulling in a dependency.
+// Deterministic visual identity for a wallet address. A smooth gradient blob
+// reads as a generic placeholder avatar — this instead generates a
+// symmetric geometric pattern (GitHub/Blockies-style), which reads as an
+// actual fingerprint of the address rather than decoration.
 
-// FNV-1a — cheap, well-distributed avalanche over the *whole* string, unlike
-// a naive rolling hash where every address shares the same "0x" prefix and
+// FNV-1a — cheap, well-distributed avalanche over the whole string, unlike a
+// naive rolling hash where every address shares the same "0x" prefix and
 // ends up producing near-identical leading hash state.
 function hash32(value: string): number {
   let h = 0x811c9dc5;
@@ -16,11 +15,25 @@ function hash32(value: string): number {
   return h >>> 0;
 }
 
-export function identiconGradient(seed: string): string {
-  const h = hash32((seed || "0x0").toLowerCase());
-  const hue = h % 360;
-  const h1 = hue;
-  const h2 = (hue + 130) % 360;
-  const h3 = (hue + 250) % 360;
-  return `linear-gradient(135deg, hsl(${h1} 75% 55%), hsl(${h2} 75% 48%) 50%, hsl(${h3} 70% 42%))`;
+export interface IdenticonPattern {
+  hue: number;
+  /** 5x5 grid, row-major, already mirrored (cols 3/4 mirror cols 1/0). */
+  cells: boolean[][];
+}
+
+export function identiconPattern(seed: string): IdenticonPattern {
+  const clean = (seed || "0x0").toLowerCase();
+  const base = hash32(clean);
+  const hue = base % 360;
+
+  const cells: boolean[][] = [];
+  for (let row = 0; row < 5; row++) {
+    const half: boolean[] = [];
+    for (let col = 0; col < 3; col++) {
+      half.push((hash32(`${clean}:${row}:${col}`) & 1) === 1);
+    }
+    cells.push([...half, half[1], half[0]]);
+  }
+
+  return { hue, cells };
 }
