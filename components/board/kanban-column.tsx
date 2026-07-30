@@ -20,7 +20,7 @@ export function KanbanColumn({
   onSelect: (job: JobListItem) => void;
 }) {
   return (
-    <div className="flex w-72 shrink-0 flex-col gap-3 sm:w-80">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2 px-1">
         <StatusDot status={status} />
         <h3 className="font-display text-sm font-semibold tracking-tight">{JOB_STATUS_LABEL[status]}</h3>
@@ -28,16 +28,17 @@ export function KanbanColumn({
           {jobs.length}
         </span>
       </div>
-      <div className="flex flex-col gap-2.5">
-        <AnimatePresence initial={false}>
-          {jobs.map((job) => (
-            <JobCard key={job.jobId} job={job} highlighted={highlighted.has(job.jobId)} onSelect={() => onSelect(job)} />
-          ))}
-        </AnimatePresence>
-        {jobs.length === 0 && (
-          <EmptyState icon={Inbox} title="No jobs here" className="py-6" />
-        )}
-      </div>
+      {jobs.length === 0 ? (
+        <EmptyState icon={Inbox} title="No jobs here" className="py-6" />
+      ) : (
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <AnimatePresence initial={false}>
+            {jobs.map((job) => (
+              <JobCard key={job.jobId} job={job} highlighted={highlighted.has(job.jobId)} onSelect={() => onSelect(job)} />
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

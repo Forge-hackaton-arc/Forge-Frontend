@@ -5,6 +5,7 @@ import { useJobs } from "@/hooks/use-jobs";
 import { JOB_STATUS_ORDER } from "@/lib/constants";
 import { DataSourceBanner } from "@/components/common/data-source-banner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { KanbanColumn } from "./kanban-column";
 import { CreateJobDialog } from "./create-job-dialog";
 import { JobDetailSheet, type JobSessionExtra } from "./job-detail-sheet";
@@ -65,25 +66,29 @@ export function KanbanBoard() {
       </div>
 
       {loading ? (
-        <div className="flex gap-4 overflow-x-auto pb-2">
+        <div className="flex flex-col gap-6">
           {JOB_STATUS_ORDER.map((s) => (
-            <div key={s} className="flex w-72 shrink-0 flex-col gap-2.5 sm:w-80">
+            <div key={s} className="flex flex-col gap-2.5">
               <Skeleton className="h-5 w-24" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          {JOB_STATUS_ORDER.map((status) => (
-            <KanbanColumn
-              key={status}
-              status={status}
-              jobs={grouped.get(status) ?? []}
-              highlighted={highlighted}
-              onSelect={openJob}
-            />
+        <div className="flex flex-col gap-6">
+          {JOB_STATUS_ORDER.map((status, i) => (
+            <React.Fragment key={status}>
+              {i > 0 && <Separator />}
+              <KanbanColumn
+                status={status}
+                jobs={grouped.get(status) ?? []}
+                highlighted={highlighted}
+                onSelect={openJob}
+              />
+            </React.Fragment>
           ))}
         </div>
       )}
