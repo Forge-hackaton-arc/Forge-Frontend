@@ -9,13 +9,16 @@
 // "simulated" rather than as clickable Arcscan links.
 
 import { API_BASE_URL, USE_MOCKS } from "./constants";
+import type { Network } from "@/providers/network-provider";
 import {
+  MOCK_AGENTS,
   MOCK_JOBS,
   MOCK_REPUTATION,
   MOCK_PAYMENTS,
   type MockPaymentEvent,
 } from "./mock-data";
 import type {
+  AgentListItem,
   ApiError,
   CreateJobRequest,
   CreateJobResponse,
@@ -52,10 +55,12 @@ function randomHex(bytes: number) {
   return out;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, network?: Network): Promise<T> {
+  const url = new URL(`${API_BASE_URL}${path}`);
+  if (network) url.searchParams.set("network", network);
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, {
+    res = await fetch(url.toString(), {
       ...init,
       headers: { "Content-Type": "application/json", ...init?.headers },
       cache: "no-store",
@@ -73,23 +78,40 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// ---- Reads: GET /api/jobs, GET /api/reputation ----------------------------
-// Mocks-first (or fallback-on-failure), always tagged with `source`.
+// ---- Reads ----------------------------------------------------------------
 
-export async function fetchJobs(): Promise<Sourced<JobListItem[]>> {
+export async function fetchJobs(network: Network = "testnet"): Promise<Sourced<JobListItem[]>> {
   if (USE_MOCKS) return { data: MOCK_JOBS, source: "mock" };
   try {
-    const data = await request<JobListItem[]>("/api/jobs");
+    const data = await request<JobListItem[]>("/api/jobs", undefined, network);
     return { data, source: "live" };
   } catch {
     return { data: MOCK_JOBS, source: "mock" };
   }
 }
 
-export async function fetchReputation(): Promise<Sourced<ReputationEntry[]>> {
+export async function fetchAgents(network: Network = "testnet"): Promise<Sourced<AgentListItem[]>> {
+  if (USE_MOCKS) {
+    return {
+      data: MOCK_AGENTS.map((a) => ({ ...a, metadataUri: null, createdAt: new Date().toISOString() })),
+      source: "mock",
+    };
+  }
+  try {
+    const data = await request<AgentListItem[]>("/api/agents", undefined, network);
+    return { data, source: "live" };
+  } catch {
+    return {
+      data: MOCK_AGENTS.map((a) => ({ ...a, metadataUri: null, createdAt: new Date().toISOString() })),
+      source: "mock",
+    };
+  }
+}
+
+export async function fetchReputation(network: Network = "testnet"): Promise<Sourced<ReputationEntry[]>> {
   if (USE_MOCKS) return { data: MOCK_REPUTATION, source: "mock" };
   try {
-    const data = await request<ReputationEntry[]>("/api/reputation");
+    const data = await request<ReputationEntry[]>("/api/reputation", undefined, network);
     return { data, source: "live" };
   } catch {
     return { data: MOCK_REPUTATION, source: "mock" };
@@ -100,13 +122,11 @@ export function fetchMockPayments(): MockPaymentEvent[] {
   return MOCK_PAYMENTS;
 }
 
-// ---- Writes: every one mutates onchain state on the real backend ----------
-// In mock mode these still "succeed" so the whole flow is click-through-able
-// during frontend-only development, but the response is tagged `source:
-// "mock"` so the UI never renders a fabricated hash as a real Arcscan link.
+// ---- Writes ---------------------------------------------------------------
 
 export async function registerAgent(
-  req: RegisterAgentRequest
+  req: RegisterAgentRequest,
+  network: Network = "testnet"
 ): Promise<Sourced<RegisterAgentResponse>> {
   if (USE_MOCKS) {
     await delay();
@@ -118,11 +138,11 @@ export async function registerAgent(
   const data = await request<RegisterAgentResponse>("/api/agents/register", {
     method: "POST",
     body: JSON.stringify(req),
-  });
+  }, network);
   return { data, source: "live" };
 }
 
-export async function createJob(req: CreateJobRequest): Promise<Sourced<CreateJobResponse>> {
+export async function createJob(req: CreateJobRequest, network: Network = "testnet"): Promise<Sourced<CreateJobResponse>> {
   if (USE_MOCKS) {
     await delay();
     return {
@@ -133,13 +153,14 @@ export async function createJob(req: CreateJobRequest): Promise<Sourced<CreateJo
   const data = await request<CreateJobResponse>("/api/jobs", {
     method: "POST",
     body: JSON.stringify(req),
-  });
+  }, network);
   return { data, source: "live" };
 }
 
 export async function submitDeliverable(
   jobId: string,
-  req: SubmitDeliverableRequest
+  req: SubmitDeliverableRequest,
+  network: Network = "testnet"
 ): Promise<Sourced<SubmitDeliverableResponse>> {
   if (USE_MOCKS) {
     await delay();
@@ -151,11 +172,11 @@ export async function submitDeliverable(
   const data = await request<SubmitDeliverableResponse>(`/api/jobs/${jobId}/submit`, {
     method: "POST",
     body: JSON.stringify(req),
-  });
+  }, network);
   return { data, source: "live" };
 }
 
-export async function validateJob(jobId: string): Promise<Sourced<ValidateJobResponse>> {
+export async function validateJob(jobId: string, network: Network = "testnet"): Promise<Sourced<ValidateJobResponse>> {
   if (USE_MOCKS) {
     await delay(900);
     const score = 55 + Math.floor(Math.random() * 45);
@@ -178,12 +199,13 @@ export async function validateJob(jobId: string): Promise<Sourced<ValidateJobRes
   const data = await request<ValidateJobResponse>(`/api/jobs/${jobId}/validate`, {
     method: "POST",
     body: JSON.stringify({}),
-  });
+  }, network);
   return { data, source: "live" };
 }
 
 export async function sendNanoPayment(
-  req: NanoPaymentRequest
+  req: NanoPaymentRequest,
+  network: Network = "testnet"
 ): Promise<Sourced<NanoPaymentResponse>> {
   if (USE_MOCKS) {
     await delay();
@@ -195,7 +217,7 @@ export async function sendNanoPayment(
   const data = await request<NanoPaymentResponse>("/api/payments/nano", {
     method: "POST",
     body: JSON.stringify(req),
-  });
+  }, network);
   return { data, source: "live" };
 }
 

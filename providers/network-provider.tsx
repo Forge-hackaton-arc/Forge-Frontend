@@ -13,12 +13,10 @@ interface NetworkContextValue {
 
 const NetworkContext = React.createContext<NetworkContextValue | null>(null);
 
-// Purely a UI/theme toggle — see components/layout/network-toggle.tsx. The
-// backend and contracts are testnet-only for this MVP (no mainnet
-// deployment, per the project's own non-goals), so this never changes which
-// API or chain the app actually talks to. It exists so the interior team can
-// preview the mainnet-warm theme and so the distinction stays visually
-// unmistakable if/when this ever points at something real.
+// Controls which chain the entire app talks to. All hooks (useJobs,
+// useReputation, usePayments) and API calls pass the active network as a
+// ?network= query param so the backend filters Supabase data and uses the
+// correct contract addresses per chain.
 export function NetworkProvider({ children }: { children: React.ReactNode }) {
   const [network, setNetworkState] = React.useState<Network>("testnet");
 

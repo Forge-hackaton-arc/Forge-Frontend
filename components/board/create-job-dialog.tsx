@@ -15,11 +15,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { createJob } from "@/lib/api";
+import { createJob, fetchAgents } from "@/lib/api";
 import { JOB_TEMPLATE } from "@/lib/constants";
 import { isValidAgentRef } from "@/lib/format";
-import { MOCK_AGENTS } from "@/lib/mock-data";
-import type { CreateJobResponse } from "@/lib/types";
+import { useNetwork } from "@/providers/network-provider";
+import type { AgentListItem, CreateJobResponse } from "@/lib/types";
 
 export interface CreatedJobMeta {
   topic: string;
@@ -35,13 +35,24 @@ interface CreateJobDialogProps {
 // client only ever supplies a topic, never a free-form job description — every
 // job in the system is the same gradeable shape the Groq validator expects.
 export function CreateJobDialog({ onCreated }: CreateJobDialogProps) {
+  const { network } = useNetwork();
   const [open, setOpen] = React.useState(false);
   const [topic, setTopic] = React.useState("");
   const [budget, setBudget] = React.useState("5.00");
-  const [providerAgentId, setProviderAgentId] = React.useState(MOCK_AGENTS[0]?.walletAddress ?? "");
-  const [evaluatorAddress, setEvaluatorAddress] = React.useState(MOCK_AGENTS[2]?.walletAddress ?? "");
+  const [providerAgentId, setProviderAgentId] = React.useState("");
+  const [evaluatorAddress, setEvaluatorAddress] = React.useState("");
   const [expiresInHours, setExpiresInHours] = React.useState(24);
   const [submitting, setSubmitting] = React.useState(false);
+  const [agents, setAgents] = React.useState<AgentListItem[]>([]);
+
+  React.useEffect(() => {
+    fetchAgents(network).then(({ data }) => {
+      setAgents(data);
+      if (!providerAgentId && data[0]) setProviderAgentId(data[0].walletAddress);
+      if (!evaluatorAddress && data[1]) setEvaluatorAddress(data[1].walletAddress);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const description = topic.trim() ? JOB_TEMPLATE.instructions(topic.trim()) : "";
   const canSubmit =
@@ -62,8 +73,9 @@ export function CreateJobDialog({ onCreated }: CreateJobDialogProps) {
         providerAgentId,
         evaluatorAddress,
         expiresAt,
-      });
+      }, network);
       onCreated(data, source === "mock", { topic: topic.trim(), budget, providerAgentId });
+
       toast[source === "mock" ? "message" : "success"](
         source === "mock" ? "Job created (simulated)" : "Job created onchain",
         { description: source === "mock" ? "No live backend connected — this did not settle onchain." : `Tx ${data.txHash.slice(0, 10)}…` }
@@ -126,13 +138,45 @@ export function CreateJobDialog({ onCreated }: CreateJobDialogProps) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="provider">Provider agent (wallet address or agent id)</Label>
-            <Input id="provider" className="font-mono text-xs" value={providerAgentId} onChange={(e) => setProviderAgentId(e.target.value)} required />
+            <Label htmlFor="provider">Provider agent</Label>
+            {agents.length > 0 ? (
+              <select
+                id="provider"
+                className="flex h-9 w-full rounded-md border border-input bg-panel px-3 font-mono text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={providerAgentId}
+                onChange={(e) => setProviderAgentId(e.target.value)}
+                required
+              >
+                {agents.map((a) => (
+                  <option key={a.agentId} value={a.walletAddress}>
+                    {a.walletAddress}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input id="provider" className="font-mono text-xs" value={providerAgentId} onChange={(e) => setProviderAgentId(e.target.value)} required placeholder="Loading agents…" />
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="evaluator">Evaluator wallet address</Label>
-            <Input id="evaluator" className="font-mono text-xs" value={evaluatorAddress} onChange={(e) => setEvaluatorAddress(e.target.value)} required />
+            {agents.length > 0 ? (
+              <select
+                id="evaluator"
+                className="flex h-9 w-full rounded-md border border-input bg-panel px-3 font-mono text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={evaluatorAddress}
+                onChange={(e) => setEvaluatorAddress(e.target.value)}
+                required
+              >
+                {agents.map((a) => (
+                  <option key={a.agentId} value={a.walletAddress}>
+                    {a.walletAddress}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input id="evaluator" className="font-mono text-xs" value={evaluatorAddress} onChange={(e) => setEvaluatorAddress(e.target.value)} required placeholder="Loading agents…" />
+            )}
             <p className="text-[11px] text-muted-foreground">
               Must differ from the provider&apos;s wallet — the ReputationRegistry contract rejects self-feedback.
             </p>

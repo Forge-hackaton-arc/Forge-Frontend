@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { USE_MOCKS } from "@/lib/constants";
+import { USE_MOCKS, API_BASE_URL } from "@/lib/constants";
 import { fetchMockPayments } from "@/lib/api";
+import { useNetwork } from "@/providers/network-provider";
 import type { MockPaymentEvent } from "@/lib/mock-data";
 
 export interface PaymentEvent extends MockPaymentEvent {
@@ -11,6 +12,7 @@ export interface PaymentEvent extends MockPaymentEvent {
 }
 
 interface PaymentRow {
+  id: number;
   from_agent_id: string;
   to_agent_id: string;
   amount: string;
@@ -18,34 +20,74 @@ interface PaymentRow {
   created_at: string;
 }
 
-const MAX_EVENTS = 16;
+interface PaymentHistoryItem {
+  id: number;
+  fromAgentId: string;
+  toAgentId: string;
+  amountUsdc: string;
+  txHash: string;
+  settledAt: string;
+}
 
-/** Backs the live nanopayment ticker (§7 of the PRD). No GET endpoint exists
- * for payment history, so real data only ever arrives via the `payments`
- * realtime channel the backend already enables. */
+const MAX_EVENTS = 50;
+
+function historyItemToEvent(item: PaymentHistoryItem): PaymentEvent {
+  return {
+    id: `${item.txHash}-${item.settledAt}`,
+    fromAgentId: item.fromAgentId,
+    toAgentId: item.toAgentId,
+    amountUsdc: item.amountUsdc,
+    reason: "settlement",
+    txHash: item.txHash,
+    settledAt: item.settledAt,
+  };
+}
+
+function rowToEvent(row: PaymentRow): PaymentEvent {
+  return {
+    id: `${row.tx_hash}-${row.created_at}`,
+    fromAgentId: row.from_agent_id,
+    toAgentId: row.to_agent_id,
+    amountUsdc: row.amount,
+    reason: "settlement",
+    txHash: row.tx_hash,
+    settledAt: row.created_at,
+  };
+}
+
 export function usePayments() {
+  const { network } = useNetwork();
   const [events, setEvents] = React.useState<PaymentEvent[]>([]);
-  const isMock = USE_MOCKS || !supabase;
+  const [loading, setLoading] = React.useState(true);
+  const isMock = USE_MOCKS;
 
+  // Initial history load — refetches when network switches
   React.useEffect(() => {
+    setEvents([]);
+    setLoading(true);
     if (isMock) {
       setEvents(fetchMockPayments().map((p, i) => ({ ...p, id: `${p.txHash}-${i}` })));
+      setLoading(false);
       return;
     }
-    const channel = supabase!
-      .channel("payments-realtime")
+    fetch(`${API_BASE_URL}/api/payments?network=${network}`, { cache: "no-store" })
+      .then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`);
+        return r.json() as Promise<PaymentHistoryItem[]>;
+      })
+      .then((items) => setEvents(items.map(historyItemToEvent).slice(0, MAX_EVENTS)))
+      .catch((err) => console.error("[usePayments] history fetch failed:", err))
+      .finally(() => setLoading(false));
+  }, [isMock, network]);
+
+  // Realtime — prepend new payments as they arrive
+  React.useEffect(() => {
+    if (isMock || !supabase) return;
+    const channel = supabase
+      .channel(`payments-realtime-${Math.random()}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "payments" }, (payload) => {
         const row = payload.new as PaymentRow;
-        const event: PaymentEvent = {
-          id: `${row.tx_hash}-${row.created_at}`,
-          fromAgentId: row.from_agent_id,
-          toAgentId: row.to_agent_id,
-          amountUsdc: row.amount,
-          reason: "settlement",
-          txHash: row.tx_hash,
-          settledAt: row.created_at,
-        };
-        setEvents((prev) => [event, ...prev].slice(0, MAX_EVENTS));
+        setEvents((prev) => [rowToEvent(row), ...prev].slice(0, MAX_EVENTS));
       })
       .subscribe();
     return () => {
@@ -53,5 +95,5 @@ export function usePayments() {
     };
   }, [isMock]);
 
-  return { events, source: isMock ? ("mock" as const) : ("live" as const) };
+  return { events, loading, source: isMock ? ("mock" as const) : ("live" as const) };
 }

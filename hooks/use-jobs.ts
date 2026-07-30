@@ -4,6 +4,7 @@ import * as React from "react";
 import { fetchJobs, type DataSource } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { USE_MOCKS } from "@/lib/constants";
+import { useNetwork } from "@/providers/network-provider";
 import type { JobListItem } from "@/lib/types";
 
 interface JobRow {
@@ -14,6 +15,7 @@ interface JobRow {
   provider_agent_id: string;
   created_at: string;
   updated_at: string;
+  network: string;
 }
 
 function rowToJob(row: JobRow): JobListItem {
@@ -28,14 +30,8 @@ function rowToJob(row: JobRow): JobListItem {
   };
 }
 
-/**
- * Loads the job list and, once real Supabase credentials are wired in
- * (NEXT_PUBLIC_USE_MOCKS=false), keeps it live via realtime subscription on
- * the `jobs` table — the backend already enables realtime on it (see
- * Forge-Backend/supabase/schema.sql). Rows that change get a short id in
- * `highlighted` so the board can flash the card that just updated.
- */
 export function useJobs() {
+  const { network } = useNetwork();
   const [jobs, setJobs] = React.useState<JobListItem[]>([]);
   const [source, setSource] = React.useState<DataSource>("mock");
   const [loading, setLoading] = React.useState(true);
@@ -54,12 +50,13 @@ export function useJobs() {
 
   const load = React.useCallback(async () => {
     setLoading(true);
-    const result = await fetchJobs();
+    const result = await fetchJobs(network);
     setJobs(result.data);
     setSource(result.source);
     setLoading(false);
-  }, []);
+  }, [network]);
 
+  // Reload whenever network switches
   React.useEffect(() => {
     load();
   }, [load]);
@@ -68,10 +65,12 @@ export function useJobs() {
     const client = supabase;
     if (!client || USE_MOCKS) return;
     const channel = client
-      .channel("jobs-realtime")
+      .channel(`jobs-realtime-${Math.random()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, (payload) => {
         const row = (payload.new ?? payload.old) as JobRow | undefined;
         if (!row?.job_id) return;
+        // Only process events for the currently active network
+        if (row.network && row.network !== network) return;
         if (payload.eventType === "DELETE") {
           setJobs((prev) => prev.filter((j) => j.jobId !== row.job_id));
           return;
@@ -88,7 +87,7 @@ export function useJobs() {
     return () => {
       client.removeChannel(channel);
     };
-  }, [flash]);
+  }, [flash, network]);
 
   return { jobs, source, loading, highlighted, refetch: load };
 }

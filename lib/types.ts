@@ -15,6 +15,13 @@ export interface RegisterAgentRequest {
   metadataUri: string;
 }
 
+export interface AgentListItem {
+  agentId: string;
+  walletAddress: string;
+  metadataUri: string | null;
+  createdAt: string;
+}
+
 export interface RegisterAgentResponse {
   agentId: string;
   walletAddress: string;

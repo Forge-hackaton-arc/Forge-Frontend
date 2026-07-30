@@ -10,7 +10,15 @@ import { relativeTime } from "@/lib/format";
 // activity even when nobody is clicking anything, which matters for a judge
 // watching a 90-second demo rather than interacting with it directly.
 export function TickerBar() {
-  const { events, source } = usePayments();
+  const { events, loading, source } = usePayments();
+
+  if (loading) {
+    return (
+      <div className="border-b border-border bg-panel/60 px-6 py-2 text-xs text-muted-foreground animate-pulse">
+        Loading payment activity…
+      </div>
+    );
+  }
 
   if (events.length === 0) {
     return (
