@@ -11,7 +11,7 @@ export function Identicon({ seed, size = 24, className }: { seed: string; size?:
       height={size}
       viewBox={`0 0 ${size} ${size}`}
       className={cn("shrink-0 rounded-md ring-1 ring-border/70", className)}
-      style={{ backgroundColor: `hsl(${hue} 30% 12%)` }}
+      style={{ backgroundColor: `hsl(${hue} var(--identicon-bg-s) var(--identicon-bg-l))` }}
       aria-hidden
     >
       {cells.map((row, r) =>
@@ -24,7 +24,7 @@ export function Identicon({ seed, size = 24, className }: { seed: string; size?:
                 y={r * cell}
                 width={cell}
                 height={cell}
-                fill={`hsl(${hue} 75% ${52 + ((r + c) % 3) * 6}%)`}
+                fill={`hsl(${hue} var(--identicon-fg-s) calc(var(--identicon-fg-l) + ${((r + c) % 3) * 4}%))`}
               />
             )
         )

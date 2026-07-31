@@ -5,19 +5,20 @@ import * as React from "react";
 // ---------------------------------------------------------------------------
 // The hero visual, one canvas, layers drawn back to front:
 //
-// 1. Wave backdrop: a diagonal silk sheet of traveling waves, now prominent
-//    rather than a hint, and it glows brighter in a soft pool beneath the
-//    globe, as if the globe is casting light down onto it, so the two read
-//    as one connected scene instead of two independent layers.
-// 2. The globe: ~340 dots on a fibonacci sphere with a fixed link web, the
+// 1. The globe: ~340 dots on a fibonacci sphere with a fixed link web, the
 //    same family as the GitHub/Stripe network globes. Turns slowly, tilts
-//    toward the cursor. A soft breathing halo sits behind it. Two orbit
-//    rings (each with a bright satellite) circle it at different tilts and
-//    speeds. Settlement arcs comet across the front face between random
-//    node pairs; when one lands on the lower hemisphere it drops straight
-//    down and lands as a brightening ripple on the wave below, the literal
-//    link between the two layers.
-// 3. A sparse layer of free drifters with proximity links that lean toward
+//    toward the cursor. A soft breathing halo sits behind it.
+// 2. A Saturn-style debris ring: hundreds of small particles scattered
+//    through an equatorial annulus, each drifting at its own slow angular
+//    speed, rotating together with the globe so it reads as flowing debris
+//    orbiting the sphere rather than a drawn line.
+// 3. Two additional orbit rings, each carrying a single bright satellite
+//    that travels around it, tilted at different angles and independent
+//    spin speeds from the debris ring and from each other, now drawn bold
+//    enough to read clearly against the globe.
+// 4. Settlement arcs comet across the globe's front face between random
+//    node pairs and land with an expanding ping ring.
+// 5. A sparse layer of free drifters with proximity links that lean toward
 //    the cursor.
 //
 // All plain canvas fills/strokes, no blur/shadow filters (the perf lesson
@@ -49,13 +50,6 @@ interface Ping {
   born: number;
 }
 
-interface Drop {
-  x: number;
-  y: number;
-  targetY: number;
-  born: number;
-}
-
 interface RingDef {
   radiusMul: number;
   tilt: number; // radians, tilt of the ring plane off the equator
@@ -64,17 +58,32 @@ interface RingDef {
   satPhase: number;
 }
 
+interface DebrisParticle {
+  radius: number; // in globe-radius units, within [DEBRIS_INNER, DEBRIS_OUTER]
+  angle: number;
+  angSpeed: number;
+  wobble: number; // small out-of-plane offset for ring thickness
+  size: number;
+}
+
 const FREE_COUNT = 40;
 const FREE_LINK_DIST = 110;
 const MOUSE_RADIUS = 170;
-const WAVE_ROWS = 18;
 const PALETTE_STEPS = 16;
 const GLOBE_POINTS = 340;
 const GLOBE_LINK_CHORD = 0.3; // unit-sphere chord distance for the link web
 const MAX_ARCS = 3;
+const DEBRIS_COUNT = 620;
+const DEBRIS_INNER = 1.28;
+const DEBRIS_OUTER = 2.15;
+// tilted off the globe's own equator (like the two orbit rings), otherwise
+// it sits nearly edge-on to the camera at the globe's resting pitch and
+// reads as noise instead of a band
+const DEBRIS_TILT = 0.38;
+// bright, bold, clearly readable against the globe now (was a faint hint)
 const RING_DEFS: RingDef[] = [
-  { radiusMul: 1.32, tilt: 0.55, spin: 0.0018, satSpeed: 0.016, satPhase: 0 },
-  { radiusMul: 1.55, tilt: -0.4, spin: -0.0012, satSpeed: -0.011, satPhase: Math.PI * 0.6 },
+  { radiusMul: 1.34, tilt: 0.55, spin: 0.0018, satSpeed: 0.016, satPhase: 0 },
+  { radiusMul: 1.6, tilt: -0.4, spin: -0.0012, satSpeed: -0.011, satPhase: Math.PI * 0.6 },
 ];
 
 export function ParticleField({ className }: { className?: string }) {
@@ -90,7 +99,6 @@ export function ParticleField({ className }: { className?: string }) {
     let height = 0;
     let raf = 0;
     let t = 0;
-    let cols = 0;
     const mouse = { x: -9999, y: -9999, active: false };
 
     let nodeColor = "150, 150, 150";
@@ -153,8 +161,22 @@ export function ParticleField({ className }: { className?: string }) {
 
     const arcs: Arc[] = [];
     const pings: Ping[] = [];
-    const drops: Drop[] = [];
-    const ripples: { x: number; born: number }[] = [];
+
+    // Saturn-style debris: scattered through an annulus, each particle at
+    // its own radius and angular speed (a little faster closer in, like
+    // real orbital mechanics), so the ring reads as flowing dust rather
+    // than a drawn line.
+    const debris: DebrisParticle[] = Array.from({ length: DEBRIS_COUNT }, () => {
+      const radius = DEBRIS_INNER + Math.random() * (DEBRIS_OUTER - DEBRIS_INNER);
+      const speedBase = 0.006 * (DEBRIS_INNER / radius);
+      return {
+        radius,
+        angle: Math.random() * Math.PI * 2,
+        angSpeed: speedBase * (0.75 + Math.random() * 0.5),
+        wobble: (Math.random() - 0.5) * 0.05,
+        size: 0.7 + Math.random() * 1.6,
+      };
+    });
 
     let free: FreeParticle[] = [];
 
@@ -165,7 +187,6 @@ export function ParticleField({ className }: { className?: string }) {
       canvas!.width = width * dpr;
       canvas!.height = height * dpr;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-      cols = Math.round(Math.min(120, Math.max(70, width / 14)));
       free = Array.from({ length: FREE_COUNT }, () => {
         const depth = Math.random();
         return {
@@ -193,82 +214,48 @@ export function ParticleField({ className }: { className?: string }) {
       mouse.y = -9999;
     }
 
-    function drawWaveBackdrop() {
-      // A quiet floor beneath the globe, not a backdrop competing with it:
-      // stays low in the hero, well clear of the sphere itself, and reads as
-      // a soft complement rather than a second focal point.
-      const bandTop = height * 0.64;
-      const bandBottom = height * 0.98;
-      const slope = height * 0.1;
+    const debrisTiltCos = Math.cos(DEBRIS_TILT);
+    const debrisTiltSin = Math.sin(DEBRIS_TILT);
 
-      for (let v = 0; v < WAVE_ROWS; v++) {
-        const rowF = v / (WAVE_ROWS - 1);
-        const rowY = bandTop + (bandBottom - bandTop) * Math.pow(rowF, 1.15);
-        const near = 0.5 + 0.5 * rowF;
-        for (let u = 0; u < cols; u++) {
-          const colF = u / (cols - 1);
-          const x = colF * width;
-          const w1 = Math.sin(colF * 9 + t * 0.85 + rowF * 3.2) * 9;
-          const w2 = Math.sin(colF * 3.4 - t * 0.5 + rowF * 7.5) * 13;
-          const w3 = Math.sin(rowF * 12 + t * 0.3 + colF * 2.4) * 5;
-          const z = (w1 + w2 + w3) * near;
-          const y = rowY + (colF - 0.5) * slope - z;
+    function debrisPosition(d: DebrisParticle): [number, number, number] {
+      const x = Math.cos(d.angle) * d.radius;
+      const flatZ = Math.sin(d.angle) * d.radius;
+      // tilt the flat ring plane about the X axis so it reads as an inclined
+      // band (like Saturn's rings) rather than sitting edge-on to the camera
+      const y = flatZ * debrisTiltSin + d.wobble;
+      const z = flatZ * debrisTiltCos;
+      return [x, y, z];
+    }
 
-          const crest = Math.max(0, Math.min(1, (z / (24 * near)) * 0.5 + 0.5));
-          const leftFade = 0.14 + 0.86 * smoothstep((colF - 0.18) / 0.34);
-
-          // a faint hint that the globe sits above it, not a bright merge
-          let glowBoost = 0;
-          if (R > 0) {
-            const dg = Math.hypot(x - cx, y - cy);
-            const reach = R * 1.5;
-            if (dg < reach) {
-              const breathe = 0.75 + 0.25 * Math.sin(t * 0.6);
-              glowBoost = Math.pow(1 - dg / reach, 2) * 0.22 * breathe;
-            }
-          }
-
-          // ripples from dropped settlement pulses landing on the sheet
-          let rippleBoost = 0;
-          for (const rp of ripples) {
-            const age = t - rp.born;
-            if (age < 0 || age > 1.1) continue;
-            const ringR = age * 110;
-            const d = Math.abs(Math.hypot(x - rp.x, y - rowY) - ringR);
-            if (d < 14) rippleBoost = Math.max(rippleBoost, (1 - age / 1.1) * (1 - d / 14) * 0.45);
-          }
-
-          const alpha =
-            (0.045 + 0.2 * Math.pow(crest, 1.5) + glowBoost + rippleBoost) * leftFade * (0.5 + 0.5 * near);
-          if (alpha < 0.02) continue;
-
-          const size = (0.75 + 1.1 * near) * (0.6 + 0.6 * crest) + glowBoost * 1.2 + rippleBoost * 1.1;
-          ctx!.globalAlpha = Math.min(1, alpha);
-          const shade = Math.min(PALETTE_STEPS - 1, Math.round((crest * 0.7 + glowBoost * 0.6 + rippleBoost * 0.5) * (PALETTE_STEPS - 1)));
-          ctx!.fillStyle = palette[shade];
-          ctx!.fillRect(x - size / 2, y - size / 2, size, size);
-        }
+    function drawDebrisRing(cosY: number, sinY: number, cosP: number, sinP: number) {
+      // Draw back-half debris first, then the sphere/rings/front-half debris
+      // paint over it naturally through normal draw order in drawGlobe.
+      for (const d of debris) {
+        d.angle += d.angSpeed;
+        const [x, y, z] = debrisPosition(d);
+        const p = project(x, y, z, cosY, sinY, cosP, sinP);
+        if (p.depth > 0.5) continue; // front half drawn in the second pass
+        const alpha = 0.2 + 0.5 * p.depth;
+        const shade = Math.min(PALETTE_STEPS - 1, Math.round(((d.radius - DEBRIS_INNER) / (DEBRIS_OUTER - DEBRIS_INNER)) * (PALETTE_STEPS - 1)));
+        ctx!.fillStyle = palette[shade];
+        ctx!.globalAlpha = alpha;
+        ctx!.fillRect(p.x - d.size / 2, p.y - d.size / 2, d.size, d.size);
       }
       ctx!.globalAlpha = 1;
+    }
 
-      // drops falling from the globe's underside toward the sheet
-      for (let i = drops.length - 1; i >= 0; i--) {
-        const d = drops[i];
-        const age = t - d.born;
-        const progress = Math.min(1, age * 1.8);
-        const y = d.y + (d.targetY - d.y) * progress;
-        ctx!.fillStyle = `rgba(${pulseColor}, ${0.85 * (1 - progress * 0.3)})`;
-        ctx!.beginPath();
-        ctx!.arc(d.x, y, 1.8, 0, Math.PI * 2);
-        ctx!.fill();
-        if (progress >= 1) {
-          ripples.push({ x: d.x, born: t });
-          drops.splice(i, 1);
-        }
+    function drawDebrisRingFront(cosY: number, sinY: number, cosP: number, sinP: number) {
+      for (const d of debris) {
+        const [x, y, z] = debrisPosition(d);
+        const p = project(x, y, z, cosY, sinY, cosP, sinP);
+        if (p.depth <= 0.5) continue;
+        const alpha = 0.35 + 0.6 * p.depth;
+        const shade = Math.min(PALETTE_STEPS - 1, Math.round(((d.radius - DEBRIS_INNER) / (DEBRIS_OUTER - DEBRIS_INNER)) * (PALETTE_STEPS - 1)));
+        ctx!.fillStyle = palette[shade];
+        ctx!.globalAlpha = alpha;
+        ctx!.fillRect(p.x - d.size / 2, p.y - d.size / 2, d.size, d.size);
       }
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        if (t - ripples[i].born > 1.1) ripples.splice(i, 1);
-      }
+      ctx!.globalAlpha = 1;
     }
 
     function project(x: number, y: number, z: number, cosY: number, sinY: number, cosP: number, sinP: number) {
@@ -318,8 +305,13 @@ export function ParticleField({ className }: { className?: string }) {
           else ctx!.lineTo(p.x, p.y);
         }
         const avgDepth = pts.reduce((s, p) => s + p.depth, 0) / pts.length;
-        ctx!.strokeStyle = `rgba(${linkColor}, ${0.08 + 0.14 * avgDepth})`;
-        ctx!.lineWidth = 0.8;
+        // bold and clearly visible: a soft wide underlay plus a crisp core
+        // stroke, instead of one faint line
+        ctx!.strokeStyle = `rgba(${linkColor}, ${0.1 + 0.16 * avgDepth})`;
+        ctx!.lineWidth = 3.5;
+        ctx!.stroke();
+        ctx!.strokeStyle = `rgba(${nodeColor}, ${0.3 + 0.45 * avgDepth})`;
+        ctx!.lineWidth = 1.3;
         ctx!.stroke();
 
         // satellite riding the ring
@@ -332,14 +324,14 @@ export function ParticleField({ className }: { className?: string }) {
         const srx = sx * ca2 - sz * sa3;
         const srz = sx * sa3 + sz * ca2;
         const sp = project(srx, sy, srz, cosY, sinY, cosP, sinP);
-        const satAlpha = 0.35 + 0.55 * sp.depth;
-        ctx!.fillStyle = `rgba(${nodeColor}, ${satAlpha * 0.25})`;
+        const satAlpha = 0.55 + 0.45 * sp.depth;
+        ctx!.fillStyle = `rgba(${nodeColor}, ${satAlpha * 0.3})`;
         ctx!.beginPath();
-        ctx!.arc(sp.x, sp.y, 5, 0, Math.PI * 2);
+        ctx!.arc(sp.x, sp.y, 8, 0, Math.PI * 2);
         ctx!.fill();
         ctx!.fillStyle = `rgba(${nodeColor}, ${satAlpha})`;
         ctx!.beginPath();
-        ctx!.arc(sp.x, sp.y, 1.8, 0, Math.PI * 2);
+        ctx!.arc(sp.x, sp.y, 3, 0, Math.PI * 2);
         ctx!.fill();
       }
     }
@@ -409,11 +401,6 @@ export function ParticleField({ className }: { className?: string }) {
 
         if (arc.t >= 1) {
           pings.push({ x: bx, y: by, born: t });
-          // if the arc lands on the lower hemisphere, let it drop into the
-          // wave sheet below: the two layers touching
-          if (by > cy + R * 0.15 && Math.random() < 0.6) {
-            drops.push({ x: bx, y: by, targetY: Math.max(by, height * 0.66), born: t });
-          }
           arcs.splice(i, 1);
         }
       }
@@ -467,6 +454,9 @@ export function ParticleField({ className }: { className?: string }) {
 
       drawHalo();
 
+      // debris behind the sphere first, so the sphere naturally occludes it
+      drawDebrisRing(cosY, sinY, cosP, sinP);
+
       // back ring pass, then the sphere, then front ring bits read naturally
       // since rings are additive strokes at low alpha regardless of order
       drawRings(cosY, sinY, cosP, sinP);
@@ -511,6 +501,10 @@ export function ParticleField({ className }: { className?: string }) {
         ctx!.fill();
       }
 
+      // debris in front of the sphere, so the ring reads as passing both
+      // behind and in front of the planet like Saturn's actually do
+      drawDebrisRingFront(cosY, sinY, cosP, sinP);
+
       drawArcs(cosY, sinY, cosP, sinP);
     }
 
@@ -518,7 +512,6 @@ export function ParticleField({ className }: { className?: string }) {
       t += 0.016;
       ctx!.clearRect(0, 0, width, height);
 
-      drawWaveBackdrop();
       drawGlobe();
 
       // ---- free drifters with proximity links ----
@@ -621,11 +614,6 @@ export function ParticleField({ className }: { className?: string }) {
   }, []);
 
   return <canvas ref={canvasRef} className={className} aria-hidden />;
-}
-
-function smoothstep(x: number): number {
-  const c = Math.max(0, Math.min(1, x));
-  return c * c * (3 - 2 * c);
 }
 
 // "H S% L%" (the raw CSS custom-property value, unitless) -> [r, g, b]

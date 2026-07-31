@@ -11,6 +11,7 @@ import { Identicon } from "@/components/common/identicon";
 import { Pagination } from "@/components/common/pagination";
 import { relativeTime, formatUsdc } from "@/lib/format";
 import { EmptyState } from "@/components/common/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type FeedItem =
   | { kind: "job"; at: string; job: ReturnType<typeof useJobs>["jobs"][number] }
@@ -21,8 +22,9 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ itemsPerPage = 10 }: ActivityFeedProps) {
-  const { jobs } = useJobs();
-  const { events } = usePayments();
+  const { jobs, loading: jobsLoading } = useJobs();
+  const { events, loading: paymentsLoading } = usePayments();
+  const loading = jobsLoading || paymentsLoading;
   const [currentPage, setCurrentPage] = React.useState(1);
   const [direction, setDirection] = React.useState<1 | -1>(1);
 
@@ -44,6 +46,16 @@ export function ActivityFeed({ itemsPerPage = 10 }: ActivityFeedProps) {
   function handlePageChange(page: number) {
     setDirection(page > currentPage ? 1 : -1);
     setCurrentPage(page);
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-2">
+        {Array.from({ length: itemsPerPage }).map((_, i) => (
+          <Skeleton key={i} className="h-[52px] w-full rounded-xl" />
+        ))}
+      </div>
+    );
   }
 
   if (feed.length === 0) {

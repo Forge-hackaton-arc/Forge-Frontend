@@ -47,6 +47,14 @@
     --atmo-1: var(--primary);
     --atmo-2: var(--accent);
     --atmo-3: var(--status-completed);
+
+    /* Identicon palette: a soft per-hue tint behind a moderately saturated
+       fill, rather than a raw neon-on-black checkerboard, so a page full of
+       distinct addresses reads as "colorful" rather than "clashing." */
+    --identicon-bg-s: 45%;
+    --identicon-bg-l: 94%;
+    --identicon-fg-s: 58%;
+    --identicon-fg-l: 46%;
   }
 
   /* Testnet is the safe default (teal/violet/green, matches --primary etc).
@@ -96,6 +104,11 @@
     --status-completed: 152 55% 52%;
     --status-rejected: 350 80% 62%;
     --status-expired: 215 15% 55%;
+
+    --identicon-bg-s: 35%;
+    --identicon-bg-l: 16%;
+    --identicon-fg-s: 65%;
+    --identicon-fg-l: 58%;
   }
 }
 
