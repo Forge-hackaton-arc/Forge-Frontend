@@ -67,7 +67,7 @@ interface RingDef {
 const FREE_COUNT = 40;
 const FREE_LINK_DIST = 110;
 const MOUSE_RADIUS = 170;
-const WAVE_ROWS = 30;
+const WAVE_ROWS = 18;
 const PALETTE_STEPS = 16;
 const GLOBE_POINTS = 340;
 const GLOBE_LINK_CHORD = 0.3; // unit-sphere chord distance for the link web
@@ -194,11 +194,12 @@ export function ParticleField({ className }: { className?: string }) {
     }
 
     function drawWaveBackdrop() {
-      // Taller, more present band that reaches up behind the globe, not just
-      // a strip along the bottom.
-      const bandTop = height * 0.3;
+      // A quiet floor beneath the globe, not a backdrop competing with it:
+      // stays low in the hero, well clear of the sphere itself, and reads as
+      // a soft complement rather than a second focal point.
+      const bandTop = height * 0.64;
       const bandBottom = height * 0.98;
-      const slope = height * 0.14;
+      const slope = height * 0.1;
 
       for (let v = 0; v < WAVE_ROWS; v++) {
         const rowF = v / (WAVE_ROWS - 1);
@@ -207,24 +208,23 @@ export function ParticleField({ className }: { className?: string }) {
         for (let u = 0; u < cols; u++) {
           const colF = u / (cols - 1);
           const x = colF * width;
-          const w1 = Math.sin(colF * 9 + t * 1.05 + rowF * 3.2) * 17;
-          const w2 = Math.sin(colF * 3.4 - t * 0.65 + rowF * 7.5) * 24;
-          const w3 = Math.sin(rowF * 12 + t * 0.35 + colF * 2.4) * 8;
+          const w1 = Math.sin(colF * 9 + t * 0.85 + rowF * 3.2) * 9;
+          const w2 = Math.sin(colF * 3.4 - t * 0.5 + rowF * 7.5) * 13;
+          const w3 = Math.sin(rowF * 12 + t * 0.3 + colF * 2.4) * 5;
           const z = (w1 + w2 + w3) * near;
           const y = rowY + (colF - 0.5) * slope - z;
 
-          const crest = Math.max(0, Math.min(1, (z / (42 * near)) * 0.5 + 0.5));
-          const leftFade = 0.16 + 0.84 * smoothstep((colF - 0.18) / 0.34);
+          const crest = Math.max(0, Math.min(1, (z / (24 * near)) * 0.5 + 0.5));
+          const leftFade = 0.14 + 0.86 * smoothstep((colF - 0.18) / 0.34);
 
-          // the globe's glow: dots near (cx, cy) brighten, as if lit from
-          // above, plus a slow breathing pulse so the pool feels alive
+          // a faint hint that the globe sits above it, not a bright merge
           let glowBoost = 0;
           if (R > 0) {
             const dg = Math.hypot(x - cx, y - cy);
-            const reach = R * 2.6;
+            const reach = R * 1.5;
             if (dg < reach) {
               const breathe = 0.75 + 0.25 * Math.sin(t * 0.6);
-              glowBoost = Math.pow(1 - dg / reach, 2) * 0.55 * breathe;
+              glowBoost = Math.pow(1 - dg / reach, 2) * 0.22 * breathe;
             }
           }
 
@@ -233,16 +233,16 @@ export function ParticleField({ className }: { className?: string }) {
           for (const rp of ripples) {
             const age = t - rp.born;
             if (age < 0 || age > 1.1) continue;
-            const ringR = age * 130;
+            const ringR = age * 110;
             const d = Math.abs(Math.hypot(x - rp.x, y - rowY) - ringR);
-            if (d < 16) rippleBoost = Math.max(rippleBoost, (1 - age / 1.1) * (1 - d / 16) * 0.8);
+            if (d < 14) rippleBoost = Math.max(rippleBoost, (1 - age / 1.1) * (1 - d / 14) * 0.45);
           }
 
           const alpha =
-            (0.09 + 0.4 * Math.pow(crest, 1.5) + glowBoost + rippleBoost) * leftFade * (0.5 + 0.5 * near);
-          if (alpha < 0.025) continue;
+            (0.045 + 0.2 * Math.pow(crest, 1.5) + glowBoost + rippleBoost) * leftFade * (0.5 + 0.5 * near);
+          if (alpha < 0.02) continue;
 
-          const size = (0.85 + 1.4 * near) * (0.6 + 0.65 * crest) + glowBoost * 1.6 + rippleBoost * 1.4;
+          const size = (0.75 + 1.1 * near) * (0.6 + 0.6 * crest) + glowBoost * 1.2 + rippleBoost * 1.1;
           ctx!.globalAlpha = Math.min(1, alpha);
           const shade = Math.min(PALETTE_STEPS - 1, Math.round((crest * 0.7 + glowBoost * 0.6 + rippleBoost * 0.5) * (PALETTE_STEPS - 1)));
           ctx!.fillStyle = palette[shade];
@@ -412,7 +412,7 @@ export function ParticleField({ className }: { className?: string }) {
           // if the arc lands on the lower hemisphere, let it drop into the
           // wave sheet below: the two layers touching
           if (by > cy + R * 0.15 && Math.random() < 0.6) {
-            drops.push({ x: bx, y: by, targetY: Math.max(by, height * 0.55), born: t });
+            drops.push({ x: bx, y: by, targetY: Math.max(by, height * 0.66), born: t });
           }
           arcs.splice(i, 1);
         }
