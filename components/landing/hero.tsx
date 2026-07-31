@@ -6,7 +6,12 @@ import { ParticleField } from "./particle-field";
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
-      <div className="container grid gap-12 py-16 sm:py-24 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-8">
+      {/* The field spans the whole hero, behind the copy — the network is the
+          backdrop you're standing in, not a widget in a corner. It listens to
+          window-level pointer moves, so hovering anywhere in the hero (even
+          over the headline) pulls the particles toward you. */}
+      <ParticleField className="absolute inset-0 h-full w-full" />
+      <div className="container relative grid gap-12 py-20 sm:py-28 lg:min-h-[560px] lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-8">
         <div className="flex flex-col items-start gap-6">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-panel/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
             Encode Club × Circle — &quot;Build on Arc&quot; · Agentic Economy track
@@ -27,9 +32,6 @@ export function Hero() {
               </Link>
             </Button>
           </div>
-        </div>
-        <div className="h-[340px] w-full sm:h-[420px] lg:h-[480px]">
-          <ParticleField className="h-full w-full" />
         </div>
       </div>
     </section>
