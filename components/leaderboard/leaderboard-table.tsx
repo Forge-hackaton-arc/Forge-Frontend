@@ -7,6 +7,7 @@ import { DataSourceBanner } from "@/components/common/data-source-banner";
 import { AddressPill } from "@/components/common/address-pill";
 import { Identicon } from "@/components/common/identicon";
 import { EmptyState } from "@/components/common/empty-state";
+import { Reveal } from "@/components/common/reveal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Podium } from "./podium";
 
@@ -17,6 +18,7 @@ export function LeaderboardTable() {
 
   return (
     <div className="container flex flex-col gap-8 py-8">
+        <Reveal y={16}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-serif text-3xl font-medium tracking-tight">Reputation leaderboard</h1>
@@ -26,6 +28,7 @@ export function LeaderboardTable() {
           </div>
           <DataSourceBanner source={source} />
         </div>
+        </Reveal>
 
         {loading ? (
           <div className="flex flex-col gap-2">
@@ -41,37 +44,41 @@ export function LeaderboardTable() {
           />
         ) : (
           <>
-            <Podium entries={ranked} />
+            <Reveal delay={0.05} y={20}>
+              <Podium entries={ranked} />
+            </Reveal>
 
             {rest.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <AnimatePresence initial={false}>
-                  {rest.map((entry, i) => (
-                    <motion.div
-                      key={entry.agentId}
-                      layout
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex items-center gap-4 rounded-xl border border-border/60 bg-panel/80 px-4 py-3 shadow-sm backdrop-blur-sm"
-                    >
-                      <span className="w-6 shrink-0 text-center font-mono text-xs text-muted-foreground">
-                        {i + 4}
-                      </span>
-                      <Identicon seed={entry.walletAddress} size={28} />
-                      <AddressPill value={entry.walletAddress} className="flex-1" />
-                      <div className="flex w-32 items-center gap-2">
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div className="h-full rounded-full bg-primary" style={{ width: `${entry.score}%` }} />
+              <Reveal delay={0.1} y={20}>
+                <div className="flex flex-col gap-2">
+                  <AnimatePresence initial={false}>
+                    {rest.map((entry, i) => (
+                      <motion.div
+                        key={entry.agentId}
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex items-center gap-4 rounded-xl border border-border/60 bg-panel/80 px-4 py-3 shadow-sm backdrop-blur-sm"
+                      >
+                        <span className="w-6 shrink-0 text-center font-mono text-xs text-muted-foreground">
+                          {i + 4}
+                        </span>
+                        <Identicon seed={entry.walletAddress} size={28} />
+                        <AddressPill value={entry.walletAddress} className="flex-1" />
+                        <div className="flex w-32 items-center gap-2">
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${entry.score}%` }} />
+                          </div>
+                          <span className="w-8 font-mono text-sm font-medium tabular-nums">{entry.score}</span>
                         </div>
-                        <span className="w-8 font-mono text-sm font-medium tabular-nums">{entry.score}</span>
-                      </div>
-                      <span className="w-24 shrink-0 text-right font-mono text-xs text-muted-foreground">
-                        {entry.jobsCompleted} completed
-                      </span>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
+                        <span className="w-24 shrink-0 text-right font-mono text-xs text-muted-foreground">
+                          {entry.jobsCompleted} completed
+                        </span>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </Reveal>
             )}
           </>
         )}

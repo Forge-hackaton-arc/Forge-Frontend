@@ -15,12 +15,14 @@ interface Dust {
 
 const COUNT = 60;
 const LINK_DIST = 100;
+const MOUSE_RADIUS = 150;
 
-// Drifting particles behind every page, the site-wide sibling of the hero's
-// wave field. Fixed to the viewport and mounted once in the root layout next
-// to Atmosphere. Visible by design: glinting motes that wander upward and
-// link faintly when they pass each other. Plain canvas fills, no blur/shadow
-// filters (see the atmosphere perf note), and kept behind all content.
+// Drifting particles behind every page, the site-wide sibling of the hero
+// scene. Fixed to the viewport, mounted once in the root layout. They are
+// alive to the visitor: motes lean toward the cursor and link to it, and
+// scrolling throws a decaying parallax impulse through the field so the
+// whole layer surges gently with the page. Plain canvas fills only (see the
+// atmosphere perf note).
 export function AmbientParticles() {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
@@ -35,6 +37,9 @@ export function AmbientParticles() {
     let motes: Dust[] = [];
     let raf = 0;
     let t = 0;
+    const mouse = { x: -9999, y: -9999, active: false };
+    let lastScrollY = window.scrollY;
+    let scrollImpulse = 0;
 
     let color = "150, 150, 150";
     const readColors = () => {
@@ -63,16 +68,49 @@ export function AmbientParticles() {
       }));
     }
 
+    function onPointerMove(e: PointerEvent) {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      mouse.active = true;
+    }
+    function onPointerLeave() {
+      mouse.active = false;
+      mouse.x = -9999;
+      mouse.y = -9999;
+    }
+    function onScroll() {
+      const y = window.scrollY;
+      // scrolling shoves the field the opposite way, then it settles
+      scrollImpulse += (y - lastScrollY) * 0.012;
+      scrollImpulse = Math.max(-4, Math.min(4, scrollImpulse));
+      lastScrollY = y;
+    }
+
     function step() {
       t += 0.016;
+      scrollImpulse *= 0.92;
       ctx!.clearRect(0, 0, width, height);
 
       for (const m of motes) {
         // gentle sideways wander so paths curve instead of running straight
         m.x += m.vx + Math.sin(t * 0.7 + m.wander) * 0.08;
-        m.y += m.vy;
+        // deeper (larger) motes catch more of the scroll surge: parallax
+        m.y += m.vy - scrollImpulse * (0.35 + m.r * 0.4);
+
+        if (mouse.active) {
+          const dx = mouse.x - m.x;
+          const dy = mouse.y - m.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < MOUSE_RADIUS && dist > 1) {
+            const force = (1 - dist / MOUSE_RADIUS) * 0.03;
+            m.x += (dx / dist) * force * 14;
+            m.y += (dy / dist) * force * 14;
+          }
+        }
+
         m.phase += m.speed;
         if (m.y < -6) { m.y = height + 6; m.x = Math.random() * width; }
+        if (m.y > height + 6) { m.y = -6; m.x = Math.random() * width; }
         if (m.x < -6) m.x = width + 6;
         if (m.x > width + 6) m.x = -6;
       }
@@ -92,6 +130,22 @@ export function AmbientParticles() {
             ctx!.beginPath();
             ctx!.moveTo(a.x, a.y);
             ctx!.lineTo(b.x, b.y);
+            ctx!.stroke();
+          }
+        }
+      }
+
+      // and to the cursor itself, so the page notices you everywhere
+      if (mouse.active) {
+        for (const m of motes) {
+          const dist = Math.hypot(mouse.x - m.x, mouse.y - m.y);
+          if (dist < MOUSE_RADIUS) {
+            const closeness = 1 - dist / MOUSE_RADIUS;
+            ctx!.strokeStyle = `rgba(${color}, ${0.14 * closeness})`;
+            ctx!.lineWidth = 0.7;
+            ctx!.beginPath();
+            ctx!.moveTo(mouse.x, mouse.y);
+            ctx!.lineTo(m.x, m.y);
             ctx!.stroke();
           }
         }
@@ -117,10 +171,16 @@ export function AmbientParticles() {
     resize();
     step();
     window.addEventListener("resize", resize);
+    window.addEventListener("pointermove", onPointerMove);
+    document.documentElement.addEventListener("pointerleave", onPointerLeave);
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("pointermove", onPointerMove);
+      document.documentElement.removeEventListener("pointerleave", onPointerLeave);
+      window.removeEventListener("scroll", onScroll);
       observer.disconnect();
     };
   }, []);

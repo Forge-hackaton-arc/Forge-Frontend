@@ -4,6 +4,7 @@ import * as React from "react";
 import { useJobs } from "@/hooks/use-jobs";
 import { JOB_STATUS_ORDER } from "@/lib/constants";
 import { DataSourceBanner } from "@/components/common/data-source-banner";
+import { Reveal } from "@/components/common/reveal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { KanbanColumn } from "./kanban-column";
@@ -41,6 +42,7 @@ export function KanbanBoard() {
 
   return (
     <div className="container flex flex-col gap-8 py-8">
+        <Reveal y={16}>
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -73,6 +75,7 @@ export function KanbanBoard() {
           </div>
           {!loading && <PipelineSummary jobs={localJobs} />}
         </div>
+        </Reveal>
 
         {loading ? (
           <div className="flex flex-col gap-6">
@@ -91,12 +94,14 @@ export function KanbanBoard() {
             {JOB_STATUS_ORDER.map((status, i) => (
               <React.Fragment key={status}>
                 {i > 0 && <Separator />}
-                <KanbanColumn
-                  status={status}
-                  jobs={grouped.get(status) ?? []}
-                  highlighted={highlighted}
-                  onSelect={openJob}
-                />
+                <Reveal delay={Math.min(i * 0.06, 0.24)} y={20}>
+                  <KanbanColumn
+                    status={status}
+                    jobs={grouped.get(status) ?? []}
+                    highlighted={highlighted}
+                    onSelect={openJob}
+                  />
+                </Reveal>
               </React.Fragment>
             ))}
           </div>
