@@ -53,7 +53,6 @@ interface Ping {
 interface RingDef {
   radiusMul: number;
   tilt: number; // radians, tilt of the ring plane off the equator
-  spin: number; // radians/frame, independent of globe yaw
   satSpeed: number;
   satPhase: number;
 }
@@ -73,18 +72,24 @@ const PALETTE_STEPS = 16;
 const GLOBE_POINTS = 340;
 const GLOBE_LINK_CHORD = 0.3; // unit-sphere chord distance for the link web
 const MAX_ARCS = 3;
-const DEBRIS_COUNT = 620;
-const DEBRIS_INNER = 1.28;
-const DEBRIS_OUTER = 2.15;
-// tilted off the globe's own equator (like the two orbit rings), otherwise
-// it sits nearly edge-on to the camera at the globe's resting pitch and
-// reads as noise instead of a band
-const DEBRIS_TILT = 0.38;
-// bright, bold, clearly readable against the globe now (was a faint hint)
+const DEBRIS_COUNT = 900;
+const DEBRIS_INNER = 1.3;
+const DEBRIS_OUTER = 2.6;
+// tilted off the globe's own equator so the band reads with depth instead of
+// sitting perfectly edge-on to the camera
+const DEBRIS_TILT = 0.42;
+// Bold, bright rings forming a fixed X across the globe (see FIXED_* below —
+// rings and debris no longer rotate with the globe or the cursor, only the
+// small satellites/dust traveling along them do).
 const RING_DEFS: RingDef[] = [
-  { radiusMul: 1.34, tilt: 0.55, spin: 0.0018, satSpeed: 0.016, satPhase: 0 },
-  { radiusMul: 1.6, tilt: -0.4, spin: -0.0012, satSpeed: -0.011, satPhase: Math.PI * 0.6 },
+  { radiusMul: 1.4, tilt: 0.52, satSpeed: 0.016, satPhase: 0 },
+  { radiusMul: 1.4, tilt: -0.52, satSpeed: -0.011, satPhase: Math.PI * 0.6 },
 ];
+// The fixed camera pose used for rings + debris only — the globe's own dots
+// keep spinning and tilting toward the cursor, but the rings and dust stay
+// locked to this single orientation so they never drift or move.
+const FIXED_YAW = 0;
+const FIXED_PITCH = -0.22;
 
 export function ParticleField({ className }: { className?: string }) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
@@ -173,10 +178,16 @@ export function ParticleField({ className }: { className?: string }) {
         radius,
         angle: Math.random() * Math.PI * 2,
         angSpeed: speedBase * (0.75 + Math.random() * 0.5),
-        wobble: (Math.random() - 0.5) * 0.05,
+        wobble: (Math.random() - 0.5) * 0.035,
         size: 0.7 + Math.random() * 1.6,
       };
     });
+
+    // computed once — rings/debris never rotate, so their basis is constant
+    const fixedCosY = Math.cos(FIXED_YAW);
+    const fixedSinY = Math.sin(FIXED_YAW);
+    const fixedCosP = Math.cos(FIXED_PITCH);
+    const fixedSinP = Math.sin(FIXED_PITCH);
 
     let free: FreeParticle[] = [];
 
@@ -284,19 +295,15 @@ export function ParticleField({ className }: { className?: string }) {
       const RING_POINTS = 72;
       for (const ring of RING_DEFS) {
         ring.satPhase += ring.satSpeed;
-        const localTilt = t * ring.spin;
         const pts: { x: number; y: number; depth: number }[] = [];
         for (let i = 0; i <= RING_POINTS; i++) {
           const a = (i / RING_POINTS) * Math.PI * 2;
-          // circle in its own tilted plane, offset by a slow independent spin
-          let x = Math.cos(a) * ring.radiusMul;
-          let y = Math.sin(a) * ring.radiusMul * Math.sin(ring.tilt);
-          let z = Math.sin(a) * ring.radiusMul * Math.cos(ring.tilt);
-          const ca = Math.cos(localTilt);
-          const sa = Math.sin(localTilt);
-          const rx = x * ca - z * sa;
-          const rz = x * sa + z * ca;
-          pts.push(project(rx, y, rz, cosY, sinY, cosP, sinP));
+          // a circle in its own fixed tilted plane — no independent spin, no
+          // coupling to the globe's rotation, so it never drifts
+          const x = Math.cos(a) * ring.radiusMul;
+          const y = Math.sin(a) * ring.radiusMul * Math.sin(ring.tilt);
+          const z = Math.sin(a) * ring.radiusMul * Math.cos(ring.tilt);
+          pts.push(project(x, y, z, cosY, sinY, cosP, sinP));
         }
         ctx!.beginPath();
         for (let i = 0; i < pts.length; i++) {
@@ -314,16 +321,12 @@ export function ParticleField({ className }: { className?: string }) {
         ctx!.lineWidth = 1.3;
         ctx!.stroke();
 
-        // satellite riding the ring
+        // satellite traveling around the fixed ring path
         const sa2 = ring.satPhase;
-        let sx = Math.cos(sa2) * ring.radiusMul;
-        let sy = Math.sin(sa2) * ring.radiusMul * Math.sin(ring.tilt);
-        let sz = Math.sin(sa2) * ring.radiusMul * Math.cos(ring.tilt);
-        const ca2 = Math.cos(localTilt);
-        const sa3 = Math.sin(localTilt);
-        const srx = sx * ca2 - sz * sa3;
-        const srz = sx * sa3 + sz * ca2;
-        const sp = project(srx, sy, srz, cosY, sinY, cosP, sinP);
+        const sx = Math.cos(sa2) * ring.radiusMul;
+        const sy = Math.sin(sa2) * ring.radiusMul * Math.sin(ring.tilt);
+        const sz = Math.sin(sa2) * ring.radiusMul * Math.cos(ring.tilt);
+        const sp = project(sx, sy, sz, cosY, sinY, cosP, sinP);
         const satAlpha = 0.55 + 0.45 * sp.depth;
         ctx!.fillStyle = `rgba(${nodeColor}, ${satAlpha * 0.3})`;
         ctx!.beginPath();
@@ -454,12 +457,16 @@ export function ParticleField({ className }: { className?: string }) {
 
       drawHalo();
 
-      // debris behind the sphere first, so the sphere naturally occludes it
-      drawDebrisRing(cosY, sinY, cosP, sinP);
+      // debris behind the sphere first, so the sphere naturally occludes it.
+      // Rings and debris use the fixed basis (position/scale still follow
+      // the live cx/cy/R, only rotation is locked) so they hold their shape
+      // and the crossing "X" never drifts, while the sphere keeps spinning
+      // and tilting toward the cursor on its own.
+      drawDebrisRing(fixedCosY, fixedSinY, fixedCosP, fixedSinP);
 
       // back ring pass, then the sphere, then front ring bits read naturally
       // since rings are additive strokes at low alpha regardless of order
-      drawRings(cosY, sinY, cosP, sinP);
+      drawRings(fixedCosY, fixedSinY, fixedCosP, fixedSinP);
 
       // link web, weighted to the front hemisphere
       for (const [a, b] of sphereLinks) {
@@ -503,7 +510,7 @@ export function ParticleField({ className }: { className?: string }) {
 
       // debris in front of the sphere, so the ring reads as passing both
       // behind and in front of the planet like Saturn's actually do
-      drawDebrisRingFront(cosY, sinY, cosP, sinP);
+      drawDebrisRingFront(fixedCosY, fixedSinY, fixedCosP, fixedSinP);
 
       drawArcs(cosY, sinY, cosP, sinP);
     }
