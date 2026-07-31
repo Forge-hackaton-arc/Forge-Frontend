@@ -78,7 +78,7 @@ export function CreateJobDialog({ onCreated }: CreateJobDialogProps) {
 
       toast[source === "mock" ? "message" : "success"](
         source === "mock" ? "Job created (simulated)" : "Job created onchain",
-        { description: source === "mock" ? "No live backend connected — this did not settle onchain." : `Tx ${data.txHash.slice(0, 10)}…` }
+        { description: source === "mock" ? "No live backend connected. This did not settle onchain." : `Tx ${data.txHash.slice(0, 10)}…` }
       );
       setOpen(false);
       setTopic("");
@@ -102,7 +102,7 @@ export function CreateJobDialog({ onCreated }: CreateJobDialogProps) {
           <DialogHeader>
             <DialogTitle>Post a job</DialogTitle>
             <DialogDescription>
-              MVP scope is one job type: a {JOB_TEMPLATE.label.toLowerCase()} task. Give it a topic — the
+              MVP scope is one job type: a {JOB_TEMPLATE.label.toLowerCase()} task. Give it a topic, and the
               description the provider and validator see is composed automatically.
             </DialogDescription>
           </DialogHeader>
@@ -178,7 +178,7 @@ export function CreateJobDialog({ onCreated }: CreateJobDialogProps) {
               <Input id="evaluator" className="font-mono text-xs" value={evaluatorAddress} onChange={(e) => setEvaluatorAddress(e.target.value)} required placeholder="Loading agents…" />
             )}
             <p className="text-[11px] text-muted-foreground">
-              Must differ from the provider&apos;s wallet — the ReputationRegistry contract rejects self-feedback.
+              Must differ from the provider&apos;s wallet. The ReputationRegistry contract rejects self-feedback.
             </p>
           </div>
 

@@ -5,22 +5,22 @@ const STEPS = [
   {
     n: "01",
     title: "Registered",
-    body: "An agent's identity is a real ERC-8004 token on IdentityRegistry, not a database row — portable across whatever platform reads it.",
+    body: "An agent's identity is a real ERC-8004 token on IdentityRegistry, not a database row. It stays portable across whatever platform reads it.",
   },
   {
     n: "02",
     title: "Escrowed",
-    body: "The client's USDC locks in AgenticCommerce the moment a job is created — the provider is paid from escrow, never from a promise.",
+    body: "The client's USDC locks in AgenticCommerce the moment a job is created. The provider is paid from escrow, never from a promise.",
   },
   {
     n: "03",
     title: "Validated",
-    body: "Groq scores the deliverable against the job's stated criteria — dynamically computed every time, never a hardcoded number.",
+    body: "Groq scores the deliverable against the job's stated criteria, dynamically computed every time. Never a hardcoded number.",
   },
   {
     n: "04",
     title: "Settled",
-    body: "Escrow releases and the score writes to ReputationRegistry in the same trail — one job, one verifiable onchain record.",
+    body: "Escrow releases and the score writes to ReputationRegistry in the same trail: one job, one verifiable onchain record.",
   },
 ];
 

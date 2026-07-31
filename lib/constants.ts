@@ -48,7 +48,7 @@ export const JOB_STATUS_COLOR_VAR: Record<JobStatus, string> = {
 
 export const JOB_STATUS_DESCRIPTION: Record<JobStatus, string> = {
   Open: "Posted onchain, awaiting escrow funding.",
-  Funded: "Escrow funded — provider can begin the work.",
+  Funded: "Escrow funded. The provider can begin the work.",
   Submitted: "Deliverable submitted, awaiting Groq validation.",
   Completed: "Validated, escrow released, reputation written onchain.",
   Rejected: "Validation failed the scoring threshold.",

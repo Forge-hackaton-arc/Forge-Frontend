@@ -18,7 +18,7 @@ export function AgentDirectoryTable() {
       <Card>
         <CardHeader>
           <CardTitle>Your registered agents</CardTitle>
-          <CardDescription>Remembered locally in this browser — not a real access-control mechanism.</CardDescription>
+          <CardDescription>Remembered locally in this browser. Not a real access-control mechanism.</CardDescription>
         </CardHeader>
         <CardContent>
           {identities.length === 0 ? (
@@ -46,7 +46,7 @@ export function AgentDirectoryTable() {
         <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
           <div>
             <CardTitle>Network agents</CardTitle>
-            <CardDescription>Sourced from the reputation leaderboard — the only agent listing the API exposes today.</CardDescription>
+            <CardDescription>Sourced from the reputation leaderboard, the only agent listing the API exposes today.</CardDescription>
           </div>
           <DataSourceBanner source={source} />
         </CardHeader>
@@ -55,7 +55,7 @@ export function AgentDirectoryTable() {
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
               There&apos;s no <code className="font-mono">GET /api/agents</code> endpoint yet, so agents that
-              haven&apos;t completed a job won&apos;t appear here — only in &quot;Your registered agents&quot; above.
+              haven&apos;t completed a job won&apos;t appear here, only in &quot;Your registered agents&quot; above.
             </span>
           </div>
           {entries.length === 0 ? (

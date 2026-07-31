@@ -21,7 +21,7 @@ export function LeaderboardTable() {
           <div>
             <h1 className="font-serif text-3xl font-medium tracking-tight">Reputation leaderboard</h1>
             <p className="text-sm text-muted-foreground">
-              Aggregated onchain from ReputationRegistry feedback — average validation score per agent.
+              Aggregated onchain from ReputationRegistry feedback: average validation score per agent.
             </p>
           </div>
           <DataSourceBanner source={source} />

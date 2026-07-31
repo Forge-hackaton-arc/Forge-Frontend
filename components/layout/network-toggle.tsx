@@ -52,7 +52,7 @@ export function NetworkToggle() {
             <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
             Arc Mainnet
           </span>
-          <span className="pl-3 text-xs text-muted-foreground">Not yet live — Arc Mainnet launches later in 2026.</span>
+          <span className="pl-3 text-xs text-muted-foreground">Not yet live. Arc Mainnet launches later in 2026.</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

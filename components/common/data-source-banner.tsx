@@ -24,7 +24,7 @@ export function DataSourceBanner({ source, className }: { source: DataSource; cl
       )}
     >
       <FlaskConical className="h-3 w-3" />
-      Mock data — no live backend connected
+      Mock data · no live backend connected
     </div>
   );
 }

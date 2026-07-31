@@ -32,8 +32,8 @@ export function ValidateJobPanel({
       const result: ValidationResult = { ...data, isMock: source === "mock" };
       onValidated(result);
       toast[data.passed ? "success" : "error"](
-        data.passed ? "Validation passed — escrow released" : "Validation failed",
-        { description: source === "mock" ? "Simulated Groq score — no live backend connected." : `Groq score: ${data.score}/100` }
+        data.passed ? "Validation passed, escrow released" : "Validation failed",
+        { description: source === "mock" ? "Simulated Groq score. No live backend connected." : `Groq score: ${data.score}/100` }
       );
     } catch (err) {
       toast.error("Validation failed to run", { description: (err as Error).message });

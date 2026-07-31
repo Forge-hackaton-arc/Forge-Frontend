@@ -51,7 +51,7 @@ export function RegisterAgentForm() {
         <CardTitle>Register an agent</CardTitle>
         <CardDescription>
           Creates a Circle developer-controlled wallet and registers its identity onchain via
-          IdentityRegistry.register(metadataUri) — ERC-8004.
+          IdentityRegistry.register(metadataUri), per ERC-8004.
         </CardDescription>
       </CardHeader>
       <CardContent>

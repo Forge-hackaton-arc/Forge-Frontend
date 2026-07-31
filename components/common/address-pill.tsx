@@ -52,7 +52,7 @@ export function AddressPill({ value, kind = "address", isMock = false, className
           <TooltipTrigger asChild>
             <span className="cursor-default">{body}</span>
           </TooltipTrigger>
-          <TooltipContent>Simulated — not a real Arc Testnet {kind === "tx" ? "transaction" : "address"}.</TooltipContent>
+          <TooltipContent>Simulated. Not a real Arc Testnet {kind === "tx" ? "transaction" : "address"}.</TooltipContent>
         </Tooltip>
       </TooltipProvider>
     );

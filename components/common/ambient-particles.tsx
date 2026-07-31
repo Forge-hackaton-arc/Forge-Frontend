@@ -12,7 +12,7 @@ interface Dust {
   speed: number;
 }
 
-const COUNT = 34;
+const COUNT = 52;
 
 // Tiny slow-drifting motes behind every page — the quiet, site-wide sibling
 // of the hero's ParticleField. Fixed to the viewport and mounted once in the
@@ -51,11 +51,11 @@ export function AmbientParticles() {
       motes = Array.from({ length: COUNT }, () => ({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.08,
-        vy: -0.04 - Math.random() * 0.09, // gentle upward drift, like embers
-        r: 0.6 + Math.random() * 1.2,
+        vx: (Math.random() - 0.5) * 0.1,
+        vy: -0.05 - Math.random() * 0.11, // gentle upward drift, like embers
+        r: 0.8 + Math.random() * 1.7,
         phase: Math.random() * Math.PI * 2,
-        speed: 0.004 + Math.random() * 0.008,
+        speed: 0.005 + Math.random() * 0.01,
       }));
     }
 
@@ -70,7 +70,13 @@ export function AmbientParticles() {
         if (m.x < -4) m.x = width + 4;
         if (m.x > width + 4) m.x = -4;
         const twinkle = 0.5 + 0.5 * Math.sin(m.phase);
-        ctx!.fillStyle = `rgba(${color}, ${0.05 + 0.13 * twinkle})`;
+        const alpha = 0.12 + 0.26 * twinkle;
+        // faint halo + core so they read as glints, not dead pixels
+        ctx!.fillStyle = `rgba(${color}, ${alpha * 0.25})`;
+        ctx!.beginPath();
+        ctx!.arc(m.x, m.y, m.r * 2.6, 0, Math.PI * 2);
+        ctx!.fill();
+        ctx!.fillStyle = `rgba(${color}, ${alpha})`;
         ctx!.beginPath();
         ctx!.arc(m.x, m.y, m.r, 0, Math.PI * 2);
         ctx!.fill();

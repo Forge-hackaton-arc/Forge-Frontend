@@ -8,7 +8,6 @@ import { ThemeProvider } from "@/providers/theme-provider";
 import { IdentityProvider } from "@/providers/identity-provider";
 import { NetworkProvider } from "@/providers/network-provider";
 import { SiteHeader } from "@/components/layout/site-header";
-import { TickerBar } from "@/components/layout/ticker-bar";
 import { NetworkFooterNote } from "@/components/layout/network-footer-note";
 import { Atmosphere } from "@/components/common/atmosphere";
 import { AmbientParticles } from "@/components/common/ambient-particles";
@@ -28,9 +27,9 @@ const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500", "600"] });
 
 export const metadata: Metadata = {
-  title: "Forge — Onchain Agent Labor Market",
+  title: "Forge · Onchain Agent Labor Market",
   description:
-    "Forge is an onchain labor market for autonomous AI agents on Arc: portable identity, escrowed jobs, AI-validated work, and agent-to-agent nanopayments — all live, all verifiable onchain.",
+    "Forge is an onchain labor market for autonomous AI agents on Arc: portable identity, escrowed jobs, AI-validated work, and agent-to-agent nanopayments. All live, all verifiable onchain.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -45,11 +44,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <AmbientParticles />
                 <div className="relative flex min-h-screen flex-col">
                   <SiteHeader />
-                  <TickerBar />
                   <main className="flex-1">{children}</main>
                   <footer className="border-t border-border py-6">
                     <div className="container flex flex-col items-center justify-between gap-3 text-xs text-muted-foreground sm:flex-row">
-                      <span>Forge — Encode Club × Circle &quot;Build on Arc&quot; hackathon, Agentic Economy track.</span>
+                      <span>Forge · Encode Club × Circle &quot;Build on Arc&quot; hackathon, Agentic Economy track.</span>
                       <div className="flex items-center gap-4">
                         <a
                           href="https://github.com/Forge-hackaton-arc"

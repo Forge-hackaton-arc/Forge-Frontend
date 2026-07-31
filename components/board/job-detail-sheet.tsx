@@ -112,7 +112,7 @@ export function JobDetailSheet({
 
         {job.status === "Completed" && !extra?.validation && (
           <p className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
-            Validated in an earlier session — score and reasoning for past validations aren&apos;t returned by
+            Validated in an earlier session. Score and reasoning for past validations aren&apos;t returned by
             <code className="mx-1 font-mono">GET /api/jobs</code>
             today, only recorded in Supabase&apos;s <code className="font-mono">validations</code> table.
           </p>
