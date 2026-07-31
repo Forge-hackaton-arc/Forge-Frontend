@@ -3,21 +3,21 @@
 import * as React from "react";
 
 // ---------------------------------------------------------------------------
-// The hero visual, drawn in one canvas, two layers:
+// The hero visual: a flowing particle wave-field in the spirit of Relay's
+// hero mesh and reactbits' Strands/Plasma Wave backgrounds. A few thousand
+// dots form a diagonal silk sheet of layered waves rolling continuously
+// through the hero, dimmed on the left so the copy stays readable and
+// cresting bright on the right. The cursor raises a live ripple in the
+// sheet: dots near the pointer swell, brighten, and radiate rings.
 //
-// 1. Free drifters across the whole hero: loose particles that link up when
-//    near each other and lean gently toward the cursor.
-// 2. The formation, on the right side: a hub-and-orbit "agent network", the
-//    most literal shape of what Forge is. A central settlement hub, an inner
-//    ring of agents, an outer ring of agents, links between the tiers, and
-//    small green pulses (USDC settling) constantly traveling from the edge
-//    toward the hub. The cursor scatters nearby formation nodes; springs pull
-//    them back into orbit when you leave, so it disturbs and reforms.
+// A sparse layer of free drifters with proximity links floats above the
+// sheet for depth, and those still lean toward the cursor.
 //
-// Everything is plain canvas fills (halo pass + core pass instead of any
-// blur/shadow filter), keeping the perf lesson from the old animated
-// atmosphere. Colors are read live from CSS vars so the whole scene follows
-// the theme toggle and the testnet/mainnet switch.
+// All plain canvas fills, no blur/shadow filters (the perf lesson from the
+// old animated atmosphere). Colors are read live from CSS vars so the scene
+// follows the theme toggle and the testnet/mainnet switch. Fill styles are
+// bucketed into a small precomputed palette so the wave loop never builds
+// color strings per-dot per-frame.
 // ---------------------------------------------------------------------------
 
 interface FreeParticle {
@@ -31,34 +31,11 @@ interface FreeParticle {
   twinkleSpeed: number;
 }
 
-interface OrbitNode {
-  ring: number; // 0 = hub, 1 = inner, 2 = outer
-  baseAngle: number;
-  radius: number; // orbit radius as a fraction of formation R
-  size: number;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  phase: number;
-}
-
-interface Pulse {
-  from: number; // node index
-  to: number; // node index
-  t: number;
-  speed: number;
-}
-
-const FREE_COUNT = 70;
+const FREE_COUNT = 46;
 const FREE_LINK_DIST = 110;
 const MOUSE_RADIUS = 170;
-const INNER_COUNT = 6;
-const OUTER_COUNT = 12;
-const PULSE_COUNT = 7;
-const SPRING = 0.028; // pull back toward orbit home
-const DAMP = 0.86;
-const REPEL = 2.4; // cursor scatter strength on formation nodes
+const ROWS = 36;
+const PALETTE_STEPS = 16;
 
 export function ParticleField({ className }: { className?: string }) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
@@ -72,96 +49,32 @@ export function ParticleField({ className }: { className?: string }) {
     let width = 0;
     let height = 0;
     let raf = 0;
-    let tick = 0;
+    let t = 0;
+    let cols = 0;
     const mouse = { x: -9999, y: -9999, active: false };
 
     let nodeColor = "150, 150, 150";
-    let linkColor = "150, 150, 150";
-    let pulseColor = "120, 200, 120";
+    // Crest-to-trough palette, primary blended into accent, prebuilt once per
+    // theme change instead of per dot.
+    let palette: string[] = [];
     const readColors = () => {
       const style = getComputedStyle(document.documentElement);
       nodeColor = hslToRgbTriplet(style.getPropertyValue("--primary"));
-      linkColor = hslToRgbTriplet(style.getPropertyValue("--accent"));
-      pulseColor = hslToRgbTriplet(style.getPropertyValue("--status-completed"));
+      const crest = hslToRgbParts(style.getPropertyValue("--primary"));
+      const trough = hslToRgbParts(style.getPropertyValue("--accent"));
+      palette = Array.from({ length: PALETTE_STEPS }, (_, i) => {
+        const f = i / (PALETTE_STEPS - 1);
+        const r = Math.round(trough[0] + (crest[0] - trough[0]) * f);
+        const g = Math.round(trough[1] + (crest[1] - trough[1]) * f);
+        const b = Math.round(trough[2] + (crest[2] - trough[2]) * f);
+        return `rgb(${r}, ${g}, ${b})`;
+      });
     };
     readColors();
     const colorObserver = new MutationObserver(readColors);
     colorObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-network"] });
 
     let free: FreeParticle[] = [];
-    let nodes: OrbitNode[] = [];
-    let links: [number, number][] = [];
-    let pulses: Pulse[] = [];
-    let cx = 0;
-    let cy = 0;
-    let R = 0;
-
-    function buildFormation() {
-      // On wide screens the formation lives in the right half, opposite the
-      // copy; on small screens it centers behind everything.
-      const wide = width >= 900;
-      cx = wide ? width * 0.72 : width * 0.5;
-      cy = height * 0.48;
-      R = wide ? Math.min(width * 0.19, height * 0.38) : Math.min(width * 0.32, height * 0.3);
-
-      nodes = [];
-      links = [];
-      // hub
-      nodes.push({ ring: 0, baseAngle: 0, radius: 0, size: 4.5, x: cx, y: cy, vx: 0, vy: 0, phase: 0 });
-      // inner ring of agents
-      for (let i = 0; i < INNER_COUNT; i++) {
-        const angle = (i / INNER_COUNT) * Math.PI * 2;
-        nodes.push({
-          ring: 1,
-          baseAngle: angle,
-          radius: 0.45,
-          size: 2.7,
-          x: cx,
-          y: cy,
-          vx: 0,
-          vy: 0,
-          phase: Math.random() * Math.PI * 2,
-        });
-      }
-      // outer ring of agents
-      for (let i = 0; i < OUTER_COUNT; i++) {
-        const angle = (i / OUTER_COUNT) * Math.PI * 2;
-        nodes.push({
-          ring: 2,
-          baseAngle: angle,
-          radius: 1,
-          size: 2,
-          x: cx,
-          y: cy,
-          vx: 0,
-          vy: 0,
-          phase: Math.random() * Math.PI * 2,
-        });
-      }
-
-      // hub to every inner agent
-      for (let i = 0; i < INNER_COUNT; i++) links.push([0, 1 + i]);
-      // each outer agent to its nearest inner agent (2 outers per inner)
-      for (let i = 0; i < OUTER_COUNT; i++) links.push([1 + (i % INNER_COUNT), 1 + INNER_COUNT + i]);
-      // neighbor chains around each ring, for the web feel
-      for (let i = 0; i < INNER_COUNT; i++) links.push([1 + i, 1 + ((i + 1) % INNER_COUNT)]);
-      for (let i = 0; i < OUTER_COUNT; i++)
-        links.push([1 + INNER_COUNT + i, 1 + INNER_COUNT + ((i + 1) % OUTER_COUNT)]);
-
-      // settlement pulses ride the hub-inner and inner-outer links inward
-      pulses = Array.from({ length: PULSE_COUNT }, () => spawnPulse());
-    }
-
-    function spawnPulse(): Pulse {
-      // travel inward: outer -> inner, or inner -> hub
-      const fromOuter = Math.random() < 0.6;
-      if (fromOuter) {
-        const o = Math.floor(Math.random() * OUTER_COUNT);
-        return { from: 1 + INNER_COUNT + o, to: 1 + (o % INNER_COUNT), t: 0, speed: 0.008 + Math.random() * 0.012 };
-      }
-      const i = Math.floor(Math.random() * INNER_COUNT);
-      return { from: 1 + i, to: 0, t: 0, speed: 0.008 + Math.random() * 0.012 };
-    }
 
     function resize() {
       const rect = canvas!.getBoundingClientRect();
@@ -170,6 +83,7 @@ export function ParticleField({ className }: { className?: string }) {
       canvas!.width = width * dpr;
       canvas!.height = height * dpr;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cols = Math.round(Math.min(120, Math.max(70, width / 15)));
       free = Array.from({ length: FREE_COUNT }, () => {
         const depth = Math.random();
         return {
@@ -183,7 +97,6 @@ export function ParticleField({ className }: { className?: string }) {
           twinkleSpeed: 0.008 + Math.random() * 0.018,
         };
       });
-      buildFormation();
     }
 
     function onPointerMove(e: PointerEvent) {
@@ -198,21 +111,69 @@ export function ParticleField({ className }: { className?: string }) {
       mouse.y = -9999;
     }
 
-    function homeOf(n: OrbitNode, t: number): [number, number] {
-      if (n.ring === 0) return [cx, cy];
-      // rings counter-rotate at different speeds; orbits breathe very slightly
-      const spin = n.ring === 1 ? t * 0.0022 : -t * 0.0011;
-      const breathe = 1 + 0.03 * Math.sin(t * 0.008 + n.baseAngle * 3);
-      const a = n.baseAngle + spin;
-      const r = n.radius * R * breathe;
-      return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+    function drawWaveSheet() {
+      // The sheet flows diagonally: rows start above mid-height on the left
+      // and sink toward the lower right, like a silk ribbon laid across the
+      // hero. Perspective: near (low) rows are larger, brighter, wider apart.
+      const bandTop = height * 0.24;
+      const bandBottom = height * 0.9;
+      const slope = height * 0.2; // diagonal drop across the full width
+
+      for (let v = 0; v < ROWS; v++) {
+        const rowF = v / (ROWS - 1);
+        // increasing spacing toward the viewer for cheap perspective
+        const rowY = bandTop + (bandBottom - bandTop) * Math.pow(rowF, 1.25);
+        const near = 0.45 + 0.55 * rowF; // 0 far, 1 near
+        for (let u = 0; u < cols; u++) {
+          const colF = u / (cols - 1);
+          const x = colF * width;
+
+          // three layered traveling waves, phase-offset per row
+          const w1 = Math.sin(colF * 9 + t * 1.1 + rowF * 3.2) * 18;
+          const w2 = Math.sin(colF * 3.4 - t * 0.7 + rowF * 7.5) * 26;
+          const w3 = Math.sin(rowF * 11 + t * 0.4 + colF * 2.2) * 10;
+          let z = (w1 + w2 + w3) * near;
+
+          let glow = 0;
+          if (mouse.active) {
+            const baseY = rowY + (colF - 0.5) * slope;
+            const dx = x - mouse.x;
+            const dy = baseY - mouse.y;
+            const d = Math.hypot(dx, dy);
+            if (d < 260) {
+              const influence = Math.exp(-(d * d) / (2 * 110 * 110));
+              // a ripple radiating outward from the cursor
+              z += influence * 32 * Math.sin(t * 3.2 - d * 0.045);
+              glow = influence;
+            }
+          }
+
+          const y = rowY + (colF - 0.5) * slope - z;
+
+          // crest factor drives color, size, and alpha
+          const crest = Math.max(0, Math.min(1, (z / (54 * near)) * 0.5 + 0.5));
+          // keep the copy zone on the left calm
+          const leftFade = 0.16 + 0.84 * smoothstep((colF - 0.22) / 0.34);
+          const alpha =
+            (0.18 + 0.65 * Math.pow(crest, 1.5) + glow * 0.5) * leftFade * (0.45 + 0.55 * near);
+          if (alpha < 0.03) continue;
+
+          const size = (0.9 + 1.6 * near) * (0.6 + 0.7 * crest) + glow * 1.4;
+          ctx!.globalAlpha = alpha;
+          ctx!.fillStyle = palette[Math.min(PALETTE_STEPS - 1, Math.round((crest * 0.8 + glow * 0.4) * (PALETTE_STEPS - 1)))];
+          ctx!.fillRect(x - size / 2, y - size / 2, size, size);
+        }
+      }
+      ctx!.globalAlpha = 1;
     }
 
     function step() {
-      tick++;
+      t += 0.016;
       ctx!.clearRect(0, 0, width, height);
 
-      // ---- free drifters ----
+      drawWaveSheet();
+
+      // ---- free drifters with proximity links, floating over the sheet ----
       for (const p of free) {
         if (mouse.active) {
           const dx = mouse.x - p.x;
@@ -244,7 +205,7 @@ export function ParticleField({ className }: { className?: string }) {
           const dist = Math.hypot(dx, dy);
           if (dist < FREE_LINK_DIST) {
             const closeness = 1 - dist / FREE_LINK_DIST;
-            ctx!.strokeStyle = `rgba(${linkColor}, ${0.04 + 0.14 * closeness * ((a.depth + b.depth) / 2)})`;
+            ctx!.strokeStyle = `rgba(${nodeColor}, ${0.05 + 0.14 * closeness * ((a.depth + b.depth) / 2)})`;
             ctx!.lineWidth = 0.7;
             ctx!.beginPath();
             ctx!.moveTo(a.x, a.y);
@@ -267,92 +228,17 @@ export function ParticleField({ className }: { className?: string }) {
         ctx!.fill();
       }
 
-      // ---- the agent-network formation ----
-      for (const n of nodes) {
-        const [hx, hy] = homeOf(n, tick);
-        // spring toward orbital home
-        n.vx += (hx - n.x) * SPRING;
-        n.vy += (hy - n.y) * SPRING;
-        // cursor scatters agents (never the hub: the market holds still)
-        if (mouse.active && n.ring !== 0) {
-          const dx = n.x - mouse.x;
-          const dy = n.y - mouse.y;
-          const dist = Math.hypot(dx, dy);
-          if (dist < MOUSE_RADIUS && dist > 1) {
-            const force = (1 - dist / MOUSE_RADIUS) * REPEL;
-            n.vx += (dx / dist) * force * 0.12;
-            n.vy += (dy / dist) * force * 0.12;
-          }
-        }
-        n.vx *= DAMP;
-        n.vy *= DAMP;
-        n.x += n.vx;
-        n.y += n.vy;
-        n.phase += 0.02;
-      }
-
-      for (const [ai, bi] of links) {
-        const a = nodes[ai];
-        const b = nodes[bi];
-        const strong = a.ring === 0 || b.ring === 0;
-        ctx!.strokeStyle = `rgba(${linkColor}, ${strong ? 0.32 : 0.16})`;
-        ctx!.lineWidth = strong ? 1.1 : 0.8;
-        ctx!.beginPath();
-        ctx!.moveTo(a.x, a.y);
-        ctx!.lineTo(b.x, b.y);
-        ctx!.stroke();
-      }
-
-      // settlement pulses, drawn between the *live* node positions so they
-      // follow the network even while it is scattered by the cursor
-      for (const pulse of pulses) {
-        pulse.t += pulse.speed;
-        if (pulse.t >= 1) {
-          Object.assign(pulse, spawnPulse());
-          continue;
-        }
-        const a = nodes[pulse.from];
-        const b = nodes[pulse.to];
-        const x = a.x + (b.x - a.x) * pulse.t;
-        const y = a.y + (b.y - a.y) * pulse.t;
-        ctx!.fillStyle = `rgba(${pulseColor}, 0.18)`;
-        ctx!.beginPath();
-        ctx!.arc(x, y, 6, 0, Math.PI * 2);
-        ctx!.fill();
-        ctx!.fillStyle = `rgba(${pulseColor}, 0.9)`;
-        ctx!.beginPath();
-        ctx!.arc(x, y, 2, 0, Math.PI * 2);
-        ctx!.fill();
-      }
-
-      for (const n of nodes) {
-        const isHub = n.ring === 0;
-        const twinkle = 0.7 + 0.3 * Math.sin(n.phase);
-        const alpha = isHub ? 0.95 : 0.55 + 0.35 * twinkle;
-        // hub gets a slow heartbeat halo
-        const haloR = isHub ? n.size * (3.4 + 0.7 * Math.sin(tick * 0.03)) : n.size * 3;
-        ctx!.fillStyle = `rgba(${nodeColor}, ${alpha * 0.22})`;
-        ctx!.beginPath();
-        ctx!.arc(n.x, n.y, haloR, 0, Math.PI * 2);
-        ctx!.fill();
-        ctx!.fillStyle = `rgba(${nodeColor}, ${alpha})`;
-        ctx!.beginPath();
-        ctx!.arc(n.x, n.y, n.size, 0, Math.PI * 2);
-        ctx!.fill();
-      }
-
-      // cursor presence: a soft node of your own, linked into whatever part
-      // of the network you are near
+      // the cursor as a soft node linked into nearby drifters
       if (mouse.active) {
-        for (const n of nodes) {
-          const dist = Math.hypot(mouse.x - n.x, mouse.y - n.y);
+        for (const p of free) {
+          const dist = Math.hypot(mouse.x - p.x, mouse.y - p.y);
           if (dist < MOUSE_RADIUS) {
             const closeness = 1 - dist / MOUSE_RADIUS;
-            ctx!.strokeStyle = `rgba(${nodeColor}, ${0.3 * closeness})`;
+            ctx!.strokeStyle = `rgba(${nodeColor}, ${0.28 * closeness})`;
             ctx!.lineWidth = 1;
             ctx!.beginPath();
             ctx!.moveTo(mouse.x, mouse.y);
-            ctx!.lineTo(n.x, n.y);
+            ctx!.lineTo(p.x, p.y);
             ctx!.stroke();
           }
         }
@@ -389,8 +275,13 @@ export function ParticleField({ className }: { className?: string }) {
   return <canvas ref={canvasRef} className={className} aria-hidden />;
 }
 
-// "H S% L%" (the raw CSS custom-property value, unitless) -> "r, g, b"
-function hslToRgbTriplet(raw: string): string {
+function smoothstep(x: number): number {
+  const c = Math.max(0, Math.min(1, x));
+  return c * c * (3 - 2 * c);
+}
+
+// "H S% L%" (the raw CSS custom-property value, unitless) -> [r, g, b]
+function hslToRgbParts(raw: string): [number, number, number] {
   const [h, s, l] = raw
     .trim()
     .split(/\s+/)
@@ -401,5 +292,10 @@ function hslToRgbTriplet(raw: string): string {
   const a = sN * Math.min(lN, 1 - lN);
   const f = (n: number) => lN - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
   const toByte = (n: number) => Math.round(f(n) * 255);
-  return `${toByte(0)}, ${toByte(8)}, ${toByte(4)}`;
+  return [toByte(0), toByte(8), toByte(4)];
+}
+
+function hslToRgbTriplet(raw: string): string {
+  const [r, g, b] = hslToRgbParts(raw);
+  return `${r}, ${g}, ${b}`;
 }

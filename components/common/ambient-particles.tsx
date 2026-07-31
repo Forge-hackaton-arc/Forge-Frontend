@@ -10,15 +10,17 @@ interface Dust {
   r: number;
   phase: number;
   speed: number;
+  wander: number;
 }
 
-const COUNT = 52;
+const COUNT = 60;
+const LINK_DIST = 100;
 
-// Tiny slow-drifting motes behind every page — the quiet, site-wide sibling
-// of the hero's ParticleField. Fixed to the viewport and mounted once in the
-// root layout next to Atmosphere. Plain canvas fills, no blur/shadow filters
-// (see the atmosphere perf note), and alpha kept very low so it reads as
-// texture, never as noise in front of content.
+// Drifting particles behind every page, the site-wide sibling of the hero's
+// wave field. Fixed to the viewport and mounted once in the root layout next
+// to Atmosphere. Visible by design: glinting motes that wander upward and
+// link faintly when they pass each other. Plain canvas fills, no blur/shadow
+// filters (see the atmosphere perf note), and kept behind all content.
 export function AmbientParticles() {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
@@ -32,6 +34,7 @@ export function AmbientParticles() {
     let height = 0;
     let motes: Dust[] = [];
     let raf = 0;
+    let t = 0;
 
     let color = "150, 150, 150";
     const readColors = () => {
@@ -51,36 +54,63 @@ export function AmbientParticles() {
       motes = Array.from({ length: COUNT }, () => ({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.1,
-        vy: -0.05 - Math.random() * 0.11, // gentle upward drift, like embers
-        r: 0.8 + Math.random() * 1.7,
+        vx: (Math.random() - 0.5) * 0.14,
+        vy: -0.08 - Math.random() * 0.16, // upward drift, like embers
+        r: 0.9 + Math.random() * 1.8,
         phase: Math.random() * Math.PI * 2,
-        speed: 0.005 + Math.random() * 0.01,
+        speed: 0.006 + Math.random() * 0.012,
+        wander: Math.random() * Math.PI * 2,
       }));
     }
 
     function step() {
+      t += 0.016;
       ctx!.clearRect(0, 0, width, height);
+
       for (const m of motes) {
-        m.x += m.vx;
+        // gentle sideways wander so paths curve instead of running straight
+        m.x += m.vx + Math.sin(t * 0.7 + m.wander) * 0.08;
         m.y += m.vy;
         m.phase += m.speed;
-        // wrap around edges so the field never empties out
-        if (m.y < -4) { m.y = height + 4; m.x = Math.random() * width; }
-        if (m.x < -4) m.x = width + 4;
-        if (m.x > width + 4) m.x = -4;
+        if (m.y < -6) { m.y = height + 6; m.x = Math.random() * width; }
+        if (m.x < -6) m.x = width + 6;
+        if (m.x > width + 6) m.x = -6;
+      }
+
+      // faint links between passing motes make the motion legible
+      for (let i = 0; i < motes.length; i++) {
+        const a = motes[i];
+        for (let j = i + 1; j < motes.length; j++) {
+          const b = motes[j];
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < LINK_DIST) {
+            const closeness = 1 - dist / LINK_DIST;
+            ctx!.strokeStyle = `rgba(${color}, ${0.09 * closeness})`;
+            ctx!.lineWidth = 0.6;
+            ctx!.beginPath();
+            ctx!.moveTo(a.x, a.y);
+            ctx!.lineTo(b.x, b.y);
+            ctx!.stroke();
+          }
+        }
+      }
+
+      for (const m of motes) {
         const twinkle = 0.5 + 0.5 * Math.sin(m.phase);
-        const alpha = 0.12 + 0.26 * twinkle;
-        // faint halo + core so they read as glints, not dead pixels
+        const alpha = 0.16 + 0.3 * twinkle;
+        // halo + core so they read as glints, not dead pixels
         ctx!.fillStyle = `rgba(${color}, ${alpha * 0.25})`;
         ctx!.beginPath();
-        ctx!.arc(m.x, m.y, m.r * 2.6, 0, Math.PI * 2);
+        ctx!.arc(m.x, m.y, m.r * 2.8, 0, Math.PI * 2);
         ctx!.fill();
         ctx!.fillStyle = `rgba(${color}, ${alpha})`;
         ctx!.beginPath();
         ctx!.arc(m.x, m.y, m.r, 0, Math.PI * 2);
         ctx!.fill();
       }
+
       raf = requestAnimationFrame(step);
     }
 
