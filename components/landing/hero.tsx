@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Github } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BoardPreview } from "./board-preview";
+import { ParticleField } from "./particle-field";
 
 export function Hero() {
   return (
@@ -26,19 +26,10 @@ export function Hero() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="rounded-full" asChild>
-              <Link href="/leaderboard">View leaderboard</Link>
-            </Button>
-            <Button size="lg" variant="ghost" className="rounded-full" asChild>
-              <a href="https://github.com/Forge-hackaton-arc" target="_blank" rel="noreferrer">
-                <Github className="h-4 w-4" />
-                Source
-              </a>
-            </Button>
           </div>
         </div>
-        <div className="flex justify-center lg:justify-end">
-          <BoardPreview />
+        <div className="h-[340px] w-full sm:h-[420px] lg:h-[480px]">
+          <ParticleField className="h-full w-full" />
         </div>
       </div>
     </section>

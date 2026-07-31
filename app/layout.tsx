@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type * as React from "react";
 import { Space_Grotesk, Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Github } from "lucide-react";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/providers/theme-provider";
@@ -45,9 +46,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <TickerBar />
                   <main className="flex-1">{children}</main>
                   <footer className="border-t border-border py-6">
-                    <div className="container flex flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
+                    <div className="container flex flex-col items-center justify-between gap-3 text-xs text-muted-foreground sm:flex-row">
                       <span>Forge — Encode Club × Circle &quot;Build on Arc&quot; hackathon, Agentic Economy track.</span>
-                      <NetworkFooterNote />
+                      <div className="flex items-center gap-4">
+                        <a
+                          href="https://github.com/Forge-hackaton-arc"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <Github className="h-3.5 w-3.5" />
+                          Source
+                        </a>
+                        <NetworkFooterNote />
+                      </div>
                     </div>
                   </footer>
                 </div>
