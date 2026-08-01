@@ -53,7 +53,8 @@ interface Ping {
 interface RingDef {
   radiusMul: number;
   tilt: number; // radians, tilt of the ring plane off the equator
-  satPhase: number; // fixed position along the ring, never advances
+  satPhase: number;
+  satSpeed: number; // the satellite orbits — only the ring's own plane is fixed
 }
 
 interface DebrisParticle {
@@ -79,13 +80,14 @@ const DEBRIS_OUTER = 3.6;
 // ellipse Saturn-photo look; plus a diagonal roll so the band cuts across
 // the frame at an angle instead of sitting perfectly level.
 const DEBRIS_TILT = 0.17;
-const DEBRIS_ROLL = 0.32;
+const DEBRIS_ROLL = -0.32;
 // Bold, bright rings forming a fixed X that faces the viewer straight on.
-// Nothing about either ring or the debris field's plane moves — see
-// FIXED_* below — but dust within the (fixed) debris plane still orbits.
+// The ring planes themselves never move — see FIXED_* below — but each
+// satellite still travels around its own (fixed) ring, same as debris dust
+// orbits within its fixed plane.
 const RING_DEFS: RingDef[] = [
-  { radiusMul: 1.4, tilt: 0.52, satPhase: 0 },
-  { radiusMul: 1.4, tilt: -0.52, satPhase: Math.PI * 0.6 },
+  { radiusMul: 1.4, tilt: 0.52, satPhase: 0, satSpeed: 0.012 },
+  { radiusMul: 1.4, tilt: -0.52, satPhase: Math.PI * 0.6, satSpeed: -0.009 },
 ];
 // The fixed camera pose used for rings + debris only — the globe's own dots
 // keep spinning and tilting toward the cursor, but the rings and dust stay
@@ -331,6 +333,7 @@ export function ParticleField({ className }: { className?: string }) {
     function drawRings(cosY: number, sinY: number, cosP: number, sinP: number) {
       const RING_POINTS = 96;
       for (const ring of RING_DEFS) {
+        ring.satPhase += ring.satSpeed;
         const pts: { x: number; y: number; depth: number }[] = [];
         for (let i = 0; i <= RING_POINTS; i++) {
           const a = (i / RING_POINTS) * Math.PI * 2;
