@@ -104,8 +104,11 @@ const RING_DEFS: RingDef[] = [
 // to the right of dead-center.
 const RING_FIXED_YAW = Math.PI / 2 + 0.16;
 const RING_FIXED_PITCH = -0.24;
-// Debris keeps the exact basis it had before the ring adjustment above.
-const DEBRIS_FIXED_YAW = Math.PI / 2;
+// Debris reverted to yaw = 0 — its basis before the rings' yaw got rotated
+// to PI/2 for the front/back crossing fix. The two shared one basis at the
+// time, so debris got carried along with that rotation; this restores the
+// orientation it had back when it was last confirmed good.
+const DEBRIS_FIXED_YAW = 0;
 const DEBRIS_FIXED_PITCH = -0.05;
 
 export function ParticleField({ className }: { className?: string }) {
