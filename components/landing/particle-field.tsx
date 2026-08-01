@@ -8,22 +8,22 @@ import * as React from "react";
 // 1. The globe: ~340 dots on a fibonacci sphere with a fixed link web, the
 //    same family as the GitHub/Stripe network globes. Turns slowly, tilts
 //    toward the cursor. A soft breathing halo sits behind it.
-// 2. A Saturn-style debris ring: hundreds of small particles scattered
-//    through an equatorial annulus, each drifting at its own slow angular
-//    speed, rotating together with the globe so it reads as flowing debris
-//    orbiting the sphere rather than a drawn line.
-// 3. Two additional orbit rings, each carrying a single bright satellite
-//    that travels around it, tilted at different angles and independent
-//    spin speeds from the debris ring and from each other, now drawn bold
-//    enough to read clearly against the globe.
-// 4. Settlement arcs comet across the globe's front face between random
+// 2. A Saturn-style debris ring and two bold orbit rings, all completely
+//    static — fixed orientation, fixed satellite position, fixed dust
+//    positions, no drift at all. Only the globe itself moves; the rings
+//    are a still picture wrapped around it. Both are rendered segment by
+//    segment with a depth + screen-position occlusion test against the
+//    sphere, so the arc that passes behind the globe fades out instead of
+//    drawing straight through it, like a real planetary ring.
+// 3. Settlement arcs comet across the globe's front face between random
 //    node pairs and land with an expanding ping ring.
-// 5. A sparse layer of free drifters with proximity links that lean toward
+// 4. A sparse layer of free drifters with proximity links that lean toward
 //    the cursor.
 //
 // All plain canvas fills/strokes, no blur/shadow filters (the perf lesson
-// from the old animated atmosphere). Colors read live from CSS vars so the
-// scene follows the theme toggle and the testnet/mainnet switch.
+// from the old animated atmosphere) — the "behind the globe" fade is done
+// with per-segment alpha, not an actual blur. Colors read live from CSS
+// vars so the scene follows the theme toggle and the testnet/mainnet switch.
 // ---------------------------------------------------------------------------
 
 interface FreeParticle {
@@ -53,14 +53,12 @@ interface Ping {
 interface RingDef {
   radiusMul: number;
   tilt: number; // radians, tilt of the ring plane off the equator
-  satSpeed: number;
-  satPhase: number;
+  satPhase: number; // fixed position along the ring, never advances
 }
 
 interface DebrisParticle {
   radius: number; // in globe-radius units, within [DEBRIS_INNER, DEBRIS_OUTER]
-  angle: number;
-  angSpeed: number;
+  angle: number; // fixed position, never advances
   wobble: number; // small out-of-plane offset for ring thickness
   size: number;
 }
@@ -72,18 +70,17 @@ const PALETTE_STEPS = 16;
 const GLOBE_POINTS = 340;
 const GLOBE_LINK_CHORD = 0.3; // unit-sphere chord distance for the link web
 const MAX_ARCS = 3;
-const DEBRIS_COUNT = 900;
+const DEBRIS_COUNT = 1050;
 const DEBRIS_INNER = 1.3;
-const DEBRIS_OUTER = 2.6;
+const DEBRIS_OUTER = 2.85;
 // tilted off the globe's own equator so the band reads with depth instead of
 // sitting perfectly edge-on to the camera
 const DEBRIS_TILT = 0.42;
-// Bold, bright rings forming a fixed X across the globe (see FIXED_* below —
-// rings and debris no longer rotate with the globe or the cursor, only the
-// small satellites/dust traveling along them do).
+// Bold, bright rings forming a fixed X across the globe. Nothing about
+// either ring or the debris field moves — see FIXED_* below.
 const RING_DEFS: RingDef[] = [
-  { radiusMul: 1.4, tilt: 0.52, satSpeed: 0.016, satPhase: 0 },
-  { radiusMul: 1.4, tilt: -0.52, satSpeed: -0.011, satPhase: Math.PI * 0.6 },
+  { radiusMul: 1.4, tilt: 0.52, satPhase: 0 },
+  { radiusMul: 1.4, tilt: -0.52, satPhase: Math.PI * 0.6 },
 ];
 // The fixed camera pose used for rings + debris only — the globe's own dots
 // keep spinning and tilting toward the cursor, but the rings and dust stay
@@ -167,17 +164,14 @@ export function ParticleField({ className }: { className?: string }) {
     const arcs: Arc[] = [];
     const pings: Ping[] = [];
 
-    // Saturn-style debris: scattered through an annulus, each particle at
-    // its own radius and angular speed (a little faster closer in, like
-    // real orbital mechanics), so the ring reads as flowing dust rather
-    // than a drawn line.
+    // Saturn-style debris: scattered through an annulus at a fixed angle
+    // each (never advances), so the ring reads as flowing dust texture
+    // without actually flowing.
     const debris: DebrisParticle[] = Array.from({ length: DEBRIS_COUNT }, () => {
       const radius = DEBRIS_INNER + Math.random() * (DEBRIS_OUTER - DEBRIS_INNER);
-      const speedBase = 0.006 * (DEBRIS_INNER / radius);
       return {
         radius,
         angle: Math.random() * Math.PI * 2,
-        angSpeed: speedBase * (0.75 + Math.random() * 0.5),
         wobble: (Math.random() - 0.5) * 0.035,
         size: 0.7 + Math.random() * 1.6,
       };
@@ -238,15 +232,31 @@ export function ParticleField({ className }: { className?: string }) {
       return [x, y, z];
     }
 
+    // How hidden a point at this depth/screen-position should be: 1 when it's
+    // both on the far side (depth well below 0.5) AND within the sphere's
+    // screen silhouette (so it's actually behind the visible globe, not just
+    // on the ring's own far arc off to the side), fading smoothly through the
+    // transition rather than snapping on/off.
+    function occlusionOf(px: number, py: number, depth: number): number {
+      const screenDist = Math.hypot(px - cx, py - cy);
+      // slightly generous disc radius + a power curve so the fade commits
+      // fully a little before the true edge, reading as a clean "behind the
+      // planet" cutoff rather than a barely-there dimming
+      const withinDisc = Math.pow(smoothstep(1 - screenDist / (R * 1.06)), 0.5);
+      const behind = smoothstep(1 - depth / 0.62);
+      return withinDisc * behind;
+    }
+
     function drawDebrisRing(cosY: number, sinY: number, cosP: number, sinP: number) {
       // Draw back-half debris first, then the sphere/rings/front-half debris
       // paint over it naturally through normal draw order in drawGlobe.
       for (const d of debris) {
-        d.angle += d.angSpeed;
         const [x, y, z] = debrisPosition(d);
         const p = project(x, y, z, cosY, sinY, cosP, sinP);
         if (p.depth > 0.5) continue; // front half drawn in the second pass
-        const alpha = 0.2 + 0.5 * p.depth;
+        const visibility = 1 - occlusionOf(p.x, p.y, p.depth);
+        const alpha = (0.26 + 0.55 * p.depth) * visibility;
+        if (alpha < 0.01) continue;
         const shade = Math.min(PALETTE_STEPS - 1, Math.round(((d.radius - DEBRIS_INNER) / (DEBRIS_OUTER - DEBRIS_INNER)) * (PALETTE_STEPS - 1)));
         ctx!.fillStyle = palette[shade];
         ctx!.globalAlpha = alpha;
@@ -260,7 +270,7 @@ export function ParticleField({ className }: { className?: string }) {
         const [x, y, z] = debrisPosition(d);
         const p = project(x, y, z, cosY, sinY, cosP, sinP);
         if (p.depth <= 0.5) continue;
-        const alpha = 0.35 + 0.6 * p.depth;
+        const alpha = 0.42 + 0.66 * p.depth;
         const shade = Math.min(PALETTE_STEPS - 1, Math.round(((d.radius - DEBRIS_INNER) / (DEBRIS_OUTER - DEBRIS_INNER)) * (PALETTE_STEPS - 1)));
         ctx!.fillStyle = palette[shade];
         ctx!.globalAlpha = alpha;
@@ -292,42 +302,52 @@ export function ParticleField({ className }: { className?: string }) {
     }
 
     function drawRings(cosY: number, sinY: number, cosP: number, sinP: number) {
-      const RING_POINTS = 72;
+      const RING_POINTS = 96;
       for (const ring of RING_DEFS) {
-        ring.satPhase += ring.satSpeed;
         const pts: { x: number; y: number; depth: number }[] = [];
         for (let i = 0; i <= RING_POINTS; i++) {
           const a = (i / RING_POINTS) * Math.PI * 2;
-          // a circle in its own fixed tilted plane — no independent spin, no
-          // coupling to the globe's rotation, so it never drifts
+          // a circle in its own fixed tilted plane — no spin, no coupling to
+          // the globe's rotation, so it never drifts
           const x = Math.cos(a) * ring.radiusMul;
           const y = Math.sin(a) * ring.radiusMul * Math.sin(ring.tilt);
           const z = Math.sin(a) * ring.radiusMul * Math.cos(ring.tilt);
           pts.push(project(x, y, z, cosY, sinY, cosP, sinP));
         }
-        ctx!.beginPath();
-        for (let i = 0; i < pts.length; i++) {
-          const p = pts[i];
-          if (i === 0) ctx!.moveTo(p.x, p.y);
-          else ctx!.lineTo(p.x, p.y);
-        }
-        const avgDepth = pts.reduce((s, p) => s + p.depth, 0) / pts.length;
-        // bold and clearly visible: a soft wide underlay plus a crisp core
-        // stroke, instead of one faint line
-        ctx!.strokeStyle = `rgba(${linkColor}, ${0.1 + 0.16 * avgDepth})`;
-        ctx!.lineWidth = 3.5;
-        ctx!.stroke();
-        ctx!.strokeStyle = `rgba(${nodeColor}, ${0.3 + 0.45 * avgDepth})`;
-        ctx!.lineWidth = 1.3;
-        ctx!.stroke();
 
-        // satellite traveling around the fixed ring path
+        // drawn segment by segment so the arc that passes behind the globe's
+        // silhouette fades out instead of drawing straight through it
+        for (let i = 0; i < pts.length; i++) {
+          const p1 = pts[i];
+          const p2 = pts[(i + 1) % pts.length];
+          const avgDepth = (p1.depth + p2.depth) / 2;
+          const midX = (p1.x + p2.x) / 2;
+          const midY = (p1.y + p2.y) / 2;
+          const visibility = 1 - occlusionOf(midX, midY, avgDepth);
+          if (visibility < 0.02) continue;
+
+          ctx!.beginPath();
+          ctx!.moveTo(p1.x, p1.y);
+          ctx!.lineTo(p2.x, p2.y);
+          // bold and clearly visible: a soft wide underlay plus a crisp core
+          // stroke, instead of one faint line
+          ctx!.strokeStyle = `rgba(${linkColor}, ${(0.1 + 0.16 * avgDepth) * visibility})`;
+          ctx!.lineWidth = 3.5;
+          ctx!.stroke();
+          ctx!.strokeStyle = `rgba(${nodeColor}, ${(0.3 + 0.45 * avgDepth) * visibility})`;
+          ctx!.lineWidth = 1.3;
+          ctx!.stroke();
+        }
+
+        // satellite fixed at one position on the ring path — same occlusion
+        // test, so it disappears believably when it's the part behind the globe
         const sa2 = ring.satPhase;
         const sx = Math.cos(sa2) * ring.radiusMul;
         const sy = Math.sin(sa2) * ring.radiusMul * Math.sin(ring.tilt);
         const sz = Math.sin(sa2) * ring.radiusMul * Math.cos(ring.tilt);
         const sp = project(sx, sy, sz, cosY, sinY, cosP, sinP);
-        const satAlpha = 0.55 + 0.45 * sp.depth;
+        const satVisibility = 1 - occlusionOf(sp.x, sp.y, sp.depth);
+        const satAlpha = (0.55 + 0.45 * sp.depth) * satVisibility;
         ctx!.fillStyle = `rgba(${nodeColor}, ${satAlpha * 0.3})`;
         ctx!.beginPath();
         ctx!.arc(sp.x, sp.y, 8, 0, Math.PI * 2);
@@ -621,6 +641,11 @@ export function ParticleField({ className }: { className?: string }) {
   }, []);
 
   return <canvas ref={canvasRef} className={className} aria-hidden />;
+}
+
+function smoothstep(x: number): number {
+  const c = Math.max(0, Math.min(1, x));
+  return c * c * (3 - 2 * c);
 }
 
 // "H S% L%" (the raw CSS custom-property value, unitless) -> [r, g, b]
