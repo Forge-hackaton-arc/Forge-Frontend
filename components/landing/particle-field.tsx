@@ -91,9 +91,13 @@ const RING_DEFS: RingDef[] = [
 ];
 // The fixed camera pose used for rings + debris only — the globe's own dots
 // keep spinning and tilting toward the cursor, but the rings and dust stay
-// locked to this single orientation so they never drift or move. Kept close
-// to head-on (small pitch) so the rings' X reads as facing the viewer.
-const FIXED_YAW = 0;
+// locked to this single orientation so they never drift or move. Each ring's
+// two natural crossing points sit at its own local x = ±radiusMul (z = 0);
+// at yaw = 0 that projects to the screen's left/right edges (crossing at the
+// globe's sides). Yaw = PI/2 swaps x and z, moving those same crossing
+// points to the front (facing the viewer) and back (hidden behind the
+// globe) instead — centered horizontally, one lit, one occluded.
+const FIXED_YAW = Math.PI / 2;
 const FIXED_PITCH = -0.05;
 
 export function ParticleField({ className }: { className?: string }) {
