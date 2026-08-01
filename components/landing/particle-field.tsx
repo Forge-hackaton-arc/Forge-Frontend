@@ -58,7 +58,8 @@ interface RingDef {
 
 interface DebrisParticle {
   radius: number; // in globe-radius units, within [DEBRIS_INNER, DEBRIS_OUTER]
-  angle: number; // fixed position, never advances
+  angle: number;
+  angSpeed: number; // dust genuinely orbits — only the ring's own plane is fixed
   wobble: number; // small out-of-plane offset for ring thickness
   size: number;
 }
@@ -70,23 +71,28 @@ const PALETTE_STEPS = 16;
 const GLOBE_POINTS = 340;
 const GLOBE_LINK_CHORD = 0.3; // unit-sphere chord distance for the link web
 const MAX_ARCS = 3;
-const DEBRIS_COUNT = 1050;
+const DEBRIS_COUNT = 1350;
 const DEBRIS_INNER = 1.3;
-const DEBRIS_OUTER = 2.85;
-// tilted off the globe's own equator so the band reads with depth instead of
-// sitting perfectly edge-on to the camera
-const DEBRIS_TILT = 0.42;
-// Bold, bright rings forming a fixed X across the globe. Nothing about
-// either ring or the debris field moves — see FIXED_* below.
+const DEBRIS_OUTER = 3.6;
+// Tilt is measured off the flat equatorial plane: 0 = a flat edge-on line,
+// PI/2 = a full face-on circle. Small values give the classic narrow-
+// ellipse Saturn-photo look; plus a diagonal roll so the band cuts across
+// the frame at an angle instead of sitting perfectly level.
+const DEBRIS_TILT = 0.17;
+const DEBRIS_ROLL = 0.32;
+// Bold, bright rings forming a fixed X that faces the viewer straight on.
+// Nothing about either ring or the debris field's plane moves — see
+// FIXED_* below — but dust within the (fixed) debris plane still orbits.
 const RING_DEFS: RingDef[] = [
   { radiusMul: 1.4, tilt: 0.52, satPhase: 0 },
   { radiusMul: 1.4, tilt: -0.52, satPhase: Math.PI * 0.6 },
 ];
 // The fixed camera pose used for rings + debris only — the globe's own dots
 // keep spinning and tilting toward the cursor, but the rings and dust stay
-// locked to this single orientation so they never drift or move.
+// locked to this single orientation so they never drift or move. Kept close
+// to head-on (small pitch) so the rings' X reads as facing the viewer.
 const FIXED_YAW = 0;
-const FIXED_PITCH = -0.22;
+const FIXED_PITCH = -0.05;
 
 export function ParticleField({ className }: { className?: string }) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
@@ -164,14 +170,17 @@ export function ParticleField({ className }: { className?: string }) {
     const arcs: Arc[] = [];
     const pings: Ping[] = [];
 
-    // Saturn-style debris: scattered through an annulus at a fixed angle
-    // each (never advances), so the ring reads as flowing dust texture
-    // without actually flowing.
+    // Saturn-style debris: scattered through an annulus, each particle at its
+    // own radius and angular speed (a little faster closer in). The dust
+    // genuinely orbits — it's the ring's plane orientation that's fixed, not
+    // the particles within it.
     const debris: DebrisParticle[] = Array.from({ length: DEBRIS_COUNT }, () => {
       const radius = DEBRIS_INNER + Math.random() * (DEBRIS_OUTER - DEBRIS_INNER);
+      const speedBase = 0.006 * (DEBRIS_INNER / radius);
       return {
         radius,
         angle: Math.random() * Math.PI * 2,
+        angSpeed: speedBase * (0.75 + Math.random() * 0.5),
         wobble: (Math.random() - 0.5) * 0.035,
         size: 0.7 + Math.random() * 1.6,
       };
@@ -221,15 +230,28 @@ export function ParticleField({ className }: { className?: string }) {
 
     const debrisTiltCos = Math.cos(DEBRIS_TILT);
     const debrisTiltSin = Math.sin(DEBRIS_TILT);
+    const debrisRollCos = Math.cos(DEBRIS_ROLL);
+    const debrisRollSin = Math.sin(DEBRIS_ROLL);
 
     function debrisPosition(d: DebrisParticle): [number, number, number] {
       const x = Math.cos(d.angle) * d.radius;
       const flatZ = Math.sin(d.angle) * d.radius;
-      // tilt the flat ring plane about the X axis so it reads as an inclined
-      // band (like Saturn's rings) rather than sitting edge-on to the camera
+      // tilt the flat ring plane about the X axis so it reads as a steep,
+      // near-edge-on band (like Saturn's rings) rather than sitting flat
+      // toward the camera
       const y = flatZ * debrisTiltSin + d.wobble;
       const z = flatZ * debrisTiltCos;
       return [x, y, z];
+    }
+
+    // A diagonal roll applied to the debris ring's screen position only (the
+    // globe and the two bold rings are untouched) — rotates the whole band
+    // around the globe's center so it cuts across the frame at an angle
+    // instead of sitting perfectly level, matching the reference photo.
+    function applyDebrisRoll(x: number, y: number): [number, number] {
+      const dx = x - cx;
+      const dy = y - cy;
+      return [cx + dx * debrisRollCos - dy * debrisRollSin, cy + dx * debrisRollSin + dy * debrisRollCos];
     }
 
     // How hidden a point at this depth/screen-position should be: 1 when it's
@@ -251,16 +273,20 @@ export function ParticleField({ className }: { className?: string }) {
       // Draw back-half debris first, then the sphere/rings/front-half debris
       // paint over it naturally through normal draw order in drawGlobe.
       for (const d of debris) {
+        d.angle += d.angSpeed;
         const [x, y, z] = debrisPosition(d);
         const p = project(x, y, z, cosY, sinY, cosP, sinP);
         if (p.depth > 0.5) continue; // front half drawn in the second pass
+        // occlusion uses the pre-roll position — distance from (cx, cy) is
+        // unaffected by rotating around that same point
         const visibility = 1 - occlusionOf(p.x, p.y, p.depth);
         const alpha = (0.26 + 0.55 * p.depth) * visibility;
         if (alpha < 0.01) continue;
+        const [rx, ry] = applyDebrisRoll(p.x, p.y);
         const shade = Math.min(PALETTE_STEPS - 1, Math.round(((d.radius - DEBRIS_INNER) / (DEBRIS_OUTER - DEBRIS_INNER)) * (PALETTE_STEPS - 1)));
         ctx!.fillStyle = palette[shade];
         ctx!.globalAlpha = alpha;
-        ctx!.fillRect(p.x - d.size / 2, p.y - d.size / 2, d.size, d.size);
+        ctx!.fillRect(rx - d.size / 2, ry - d.size / 2, d.size, d.size);
       }
       ctx!.globalAlpha = 1;
     }
@@ -271,10 +297,11 @@ export function ParticleField({ className }: { className?: string }) {
         const p = project(x, y, z, cosY, sinY, cosP, sinP);
         if (p.depth <= 0.5) continue;
         const alpha = 0.42 + 0.66 * p.depth;
+        const [rx, ry] = applyDebrisRoll(p.x, p.y);
         const shade = Math.min(PALETTE_STEPS - 1, Math.round(((d.radius - DEBRIS_INNER) / (DEBRIS_OUTER - DEBRIS_INNER)) * (PALETTE_STEPS - 1)));
         ctx!.fillStyle = palette[shade];
         ctx!.globalAlpha = alpha;
-        ctx!.fillRect(p.x - d.size / 2, p.y - d.size / 2, d.size, d.size);
+        ctx!.fillRect(rx - d.size / 2, ry - d.size / 2, d.size, d.size);
       }
       ctx!.globalAlpha = 1;
     }

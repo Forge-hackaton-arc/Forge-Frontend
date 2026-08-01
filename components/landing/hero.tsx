@@ -10,7 +10,7 @@ export function Hero() {
           backdrop you're standing in, not a widget in a corner. It listens to
           window-level pointer moves, so hovering anywhere in the hero (even
           over the headline) pulls the particles toward you. */}
-      <ParticleField className="absolute inset-0 h-full w-full" />
+      <ParticleField className="pointer-events-none absolute inset-0 h-full w-full" />
       <div className="container relative grid gap-12 py-20 sm:py-28 lg:min-h-[560px] lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-8">
         <div className="flex flex-col items-start gap-6">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-panel/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
