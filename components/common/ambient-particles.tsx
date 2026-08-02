@@ -18,15 +18,18 @@ const LINK_DIST = 100;
 const MOUSE_RADIUS = 150;
 
 // Drifting particles behind every page, the site-wide sibling of the hero
-// scene. Fixed to the viewport, mounted once in the root layout. They are
+// scene. Fixed to the viewport, mounted once in the root layout, painted
+// directly above Atmosphere's dot-grid texture (same -z-10 layer). They are
 // alive to the visitor: motes lean toward the cursor and link to it, and
 // scrolling throws a decaying parallax impulse through the field so the
-// whole layer surges gently with the page. On top of that, scrolling briefly
-// blurs the whole layer and leaves fading streak trails behind each mote —
-// a "moving through space" flash — via a canvas filter and a translucent
-// repaint instead of a hard clear, both scaled to scroll speed and decaying
-// back to a crisp, unblurred, non-trailing frame within a few hundred ms so
-// the field is only ever briefly more expensive to paint, never at rest.
+// whole layer surges gently with the page. Each mote also trails a comet
+// streak scaled continuously off scroll speed for a "moving through space"
+// look — deliberately just a per-mote stroke, not a canvas-wide blur/repaint
+// trick, both because a real ctx.filter blur measurably cratered scroll
+// frame rate (the same lesson the old animated atmosphere already taught
+// this codebase once) and because skipping the per-frame clear to let old
+// frames bleed through would have painted over and hidden Atmosphere
+// underneath during sustained scrolling.
 export function AmbientParticles() {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
@@ -47,11 +50,9 @@ export function AmbientParticles() {
     let scrollActivity = 0; // 0..1, spikes on scroll, decays every frame
 
     let color = "150, 150, 150";
-    let bg = "10, 12, 16";
     const readColors = () => {
       const style = getComputedStyle(document.documentElement);
       color = hslToRgbTriplet(style.getPropertyValue("--primary"));
-      bg = hslToRgbTriplet(style.getPropertyValue("--background"));
     };
     readColors();
     const observer = new MutationObserver(readColors);
@@ -100,19 +101,18 @@ export function AmbientParticles() {
       scrollImpulse *= 0.92;
       scrollActivity *= 0.9;
 
-      // a crisp clear at rest; scrolling swaps to a translucent repaint so
-      // the previous frame bleeds through as a fading streak trail — this
-      // (plus the per-mote comet streaks below) carries the "blurred motion"
-      // look on its own. A real ctx.filter blur was tried here and reverted:
-      // Canvas2D filters are software-rasterized per draw call and cratered
-      // frame rate during scroll (the same lesson the old animated
-      // atmosphere already taught this codebase once).
-      if (scrollActivity > 0.02) {
-        ctx!.fillStyle = `rgba(${bg}, ${Math.min(0.6, 0.14 + scrollActivity * 0.55)})`;
-        ctx!.fillRect(0, 0, width, height);
-      } else {
-        ctx!.clearRect(0, 0, width, height);
-      }
+      // Always a full clear — this canvas sits directly above Atmosphere's
+      // dot-grid texture (same -z-10 layer, painted first), so anything
+      // short of clearRect would paint over and hide it. An earlier version
+      // of this effect skipped the clear during scroll and instead left a
+      // translucent bg-tinted repaint so old mote frames bled through as a
+      // trail — cheap, but it (a) permanently washed out Atmosphere's
+      // texture during sustained scrolling and (b) produced a visible jump
+      // in brightness right at the threshold where it switched back to a
+      // real clear. Dropped that; the per-mote comet streak below (which
+      // scales continuously with scroll speed, no threshold) carries the
+      // "motion" look on its own without either problem.
+      ctx!.clearRect(0, 0, width, height);
 
       for (const m of motes) {
         // gentle sideways wander so paths curve instead of running straight
@@ -179,20 +179,21 @@ export function AmbientParticles() {
         const twinkle = 0.5 + 0.5 * Math.sin(m.phase);
         const alpha = 0.16 + 0.3 * twinkle;
 
-        // a comet streak behind fast-scrolling motes, on top of the ambient
-        // blur/trail repaint above
-        if (scrollActivity > 0.05) {
-          const scrollDy = scrollImpulse * (0.35 + m.r * 0.4);
-          const streakLen = scrollDy * 5.5;
-          if (Math.abs(streakLen) > 1.5) {
-            ctx!.strokeStyle = `rgba(${color}, ${Math.min(0.5, alpha * scrollActivity)})`;
-            ctx!.lineWidth = m.r * 0.8;
-            ctx!.lineCap = "round";
-            ctx!.beginPath();
-            ctx!.moveTo(m.x, m.y + streakLen);
-            ctx!.lineTo(m.x, m.y);
-            ctx!.stroke();
-          }
+        // A comet streak behind fast-scrolling motes — length and alpha
+        // both scale continuously off scrollActivity/scrollImpulse (which
+        // themselves decay smoothly frame to frame), so the streak eases
+        // out naturally as scrolling settles rather than being gated by a
+        // threshold that would cut it off abruptly.
+        const scrollDy = scrollImpulse * (0.35 + m.r * 0.4);
+        const streakLen = scrollDy * 5.5;
+        if (Math.abs(streakLen) > 1.5) {
+          ctx!.strokeStyle = `rgba(${color}, ${Math.min(0.5, alpha * scrollActivity)})`;
+          ctx!.lineWidth = m.r * 0.8;
+          ctx!.lineCap = "round";
+          ctx!.beginPath();
+          ctx!.moveTo(m.x, m.y + streakLen);
+          ctx!.lineTo(m.x, m.y);
+          ctx!.stroke();
         }
 
         // halo + core so they read as glints, not dead pixels

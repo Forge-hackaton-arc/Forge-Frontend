@@ -68,6 +68,9 @@ interface DebrisParticle {
 const FREE_COUNT = 40;
 const FREE_LINK_DIST = 110;
 const MOUSE_RADIUS = 170;
+// small and short-range on purpose — a hint of a reaction, not a shove
+const DEBRIS_MOUSE_RADIUS = 85;
+const DEBRIS_MOUSE_STRENGTH = 16;
 const PALETTE_STEPS = 16;
 const GLOBE_POINTS = 340;
 const GLOBE_LINK_CHORD = 0.3; // unit-sphere chord distance for the link web
@@ -275,6 +278,21 @@ export function ParticleField({ className }: { className?: string }) {
       return [cx + dx * debrisRollCos - dy * debrisRollSin, cy + dx * debrisRollSin + dy * debrisRollCos];
     }
 
+    // A tiny cursor-proximity scatter for debris only — computed fresh each
+    // frame from the current draw position rather than stored on the
+    // particle, so it's a pure visual nudge with no memory: the dust keeps
+    // orbiting exactly as before underneath, and naturally snaps back the
+    // instant it's no longer near the cursor.
+    function applyDebrisScatter(x: number, y: number): [number, number] {
+      if (!mouse.active) return [x, y];
+      const dx = x - mouse.x;
+      const dy = y - mouse.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist >= DEBRIS_MOUSE_RADIUS || dist < 1) return [x, y];
+      const push = (1 - dist / DEBRIS_MOUSE_RADIUS) * DEBRIS_MOUSE_STRENGTH;
+      return [x + (dx / dist) * push, y + (dy / dist) * push];
+    }
+
     // How hidden a point at this depth/screen-position should be: 1 when it's
     // both on the far side (depth well below 0.5) AND within the sphere's
     // screen silhouette (so it's actually behind the visible globe, not just
@@ -303,7 +321,8 @@ export function ParticleField({ className }: { className?: string }) {
         const visibility = 1 - occlusionOf(p.x, p.y, p.depth);
         const alpha = (0.26 + 0.55 * p.depth) * visibility;
         if (alpha < 0.01) continue;
-        const [rx, ry] = applyDebrisRoll(p.x, p.y);
+        const [rollX, rollY] = applyDebrisRoll(p.x, p.y);
+        const [rx, ry] = applyDebrisScatter(rollX, rollY);
         const shade = Math.min(PALETTE_STEPS - 1, Math.round(((d.radius - DEBRIS_INNER) / (DEBRIS_OUTER - DEBRIS_INNER)) * (PALETTE_STEPS - 1)));
         ctx!.fillStyle = palette[shade];
         ctx!.globalAlpha = alpha;
@@ -318,7 +337,8 @@ export function ParticleField({ className }: { className?: string }) {
         const p = project(x, y, z, cosY, sinY, cosP, sinP);
         if (p.depth <= 0.5) continue;
         const alpha = 0.42 + 0.66 * p.depth;
-        const [rx, ry] = applyDebrisRoll(p.x, p.y);
+        const [rollX, rollY] = applyDebrisRoll(p.x, p.y);
+        const [rx, ry] = applyDebrisScatter(rollX, rollY);
         const shade = Math.min(PALETTE_STEPS - 1, Math.round(((d.radius - DEBRIS_INNER) / (DEBRIS_OUTER - DEBRIS_INNER)) * (PALETTE_STEPS - 1)));
         ctx!.fillStyle = palette[shade];
         ctx!.globalAlpha = alpha;
