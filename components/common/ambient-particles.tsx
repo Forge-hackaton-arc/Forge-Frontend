@@ -177,7 +177,11 @@ export function AmbientParticles() {
 
       for (const m of motes) {
         const twinkle = 0.5 + 0.5 * Math.sin(m.phase);
-        const alpha = 0.16 + 0.3 * twinkle;
+        const baseAlpha = 0.16 + 0.3 * twinkle;
+        // Motes themselves brighten while scrolling, not just the streak —
+        // continuous with scrollActivity (no threshold), easing up and back
+        // down smoothly as it rises and decays each frame.
+        const alpha = Math.min(1, baseAlpha * (1 + scrollActivity * 1.7));
 
         // A comet streak behind fast-scrolling motes — length and alpha
         // both scale continuously off scrollActivity/scrollImpulse (which
@@ -187,7 +191,7 @@ export function AmbientParticles() {
         const scrollDy = scrollImpulse * (0.35 + m.r * 0.4);
         const streakLen = scrollDy * 5.5;
         if (Math.abs(streakLen) > 1.5) {
-          ctx!.strokeStyle = `rgba(${color}, ${Math.min(0.5, alpha * scrollActivity)})`;
+          ctx!.strokeStyle = `rgba(${color}, ${Math.min(0.5, baseAlpha * scrollActivity)})`;
           ctx!.lineWidth = m.r * 0.8;
           ctx!.lineCap = "round";
           ctx!.beginPath();

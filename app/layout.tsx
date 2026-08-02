@@ -11,6 +11,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { NetworkFooterNote } from "@/components/layout/network-footer-note";
 import { Atmosphere } from "@/components/common/atmosphere";
 import { AmbientParticles } from "@/components/common/ambient-particles";
+import { OrbitDebris } from "@/components/common/orbit-debris";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <TooltipProvider delayDuration={200}>
                 <Atmosphere />
                 <AmbientParticles />
+                <OrbitDebris />
                 <div className="relative flex min-h-screen flex-col">
                   <SiteHeader />
                   <main className="flex-1">{children}</main>
