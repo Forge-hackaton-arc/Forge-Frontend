@@ -34,14 +34,14 @@ export function Podium({ entries }: { entries: ReputationEntry[] }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.08, duration: 0.4 }}
             className={cn(
-              "flex flex-col items-center gap-2 rounded-2xl border border-border/60 bg-panel/80 px-6 text-center shadow-lg shadow-black/[0.03] backdrop-blur-sm dark:shadow-black/20",
+              "sun-shadow flex flex-col items-center gap-2 rounded-2xl border border-border/60 bg-panel/80 px-6 text-center backdrop-blur-sm",
               style.order,
               style.pad
             )}
           >
             <Icon className={cn("h-6 w-6", style.iconClass)} />
             <Identicon seed={entry.walletAddress} size={style.size} className={cn("ring-2", style.ring)} />
-            <span className="font-serif text-3xl font-medium tracking-tight">{entry.score}</span>
+            <span className="text-sun font-serif text-3xl font-medium tracking-tight">{entry.score}</span>
             <AddressPill value={entry.walletAddress} className="text-[11px]" />
             <span className="font-mono text-[11px] text-muted-foreground">
               #{rank} · {entry.jobsCompleted} completed

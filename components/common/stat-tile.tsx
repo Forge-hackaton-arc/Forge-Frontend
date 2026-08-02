@@ -36,7 +36,7 @@ export function StatTile({ label, value, suffix, prefix, decimals = 0, icon, cla
       viewport={{ once: true }}
       transition={{ duration: 0.4 }}
       className={cn(
-        "rounded-xl border border-border/60 bg-panel/80 p-5 shadow-md shadow-black/[0.02] backdrop-blur-sm transition-shadow hover:shadow-lg dark:shadow-black/20",
+        "sun-shadow rounded-xl border border-border/60 bg-panel/80 p-5 backdrop-blur-sm transition-shadow",
         className
       )}
     >
@@ -44,7 +44,7 @@ export function StatTile({ label, value, suffix, prefix, decimals = 0, icon, cla
         <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
         {icon}
       </div>
-      <span ref={ref} className="mt-2 block font-serif text-4xl font-medium tabular-nums tracking-tight text-foreground">
+      <span ref={ref} className="text-sun mt-2 block font-serif text-4xl font-medium tabular-nums tracking-tight">
         {prefix}
         {display.toFixed(decimals)}
         {suffix}

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { type RGB, stepRGB, rgbToCss } from "@/lib/color-spring";
 
 interface Dust {
   x: number;
@@ -49,14 +50,20 @@ export function AmbientParticles() {
     let scrollImpulse = 0;
     let scrollActivity = 0; // 0..1, spikes on scroll, decays every frame
 
-    let color = "150, 150, 150";
+    // Eased toward target on theme switches, same technique as
+    // particle-field.tsx/orbit-debris.tsx, so this layer's motes shift hue
+    // gracefully rather than snapping the instant the class flips.
+    let colorTarget: RGB = [150, 150, 150];
+    let colorCurrent: RGB = [...colorTarget];
+    let color = rgbToCss(colorCurrent);
     const readColors = () => {
       const style = getComputedStyle(document.documentElement);
       // --sun-core aliases back to --primary in dark mode (unchanged look)
       // but goes warm gold in light mode — see globals.css.
-      color = hslToRgbTriplet(style.getPropertyValue("--sun-core"));
+      colorTarget = hslToRgbParts(style.getPropertyValue("--sun-core"));
     };
     readColors();
+    colorCurrent = [...colorTarget];
     const observer = new MutationObserver(readColors);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-network"] });
 
@@ -100,6 +107,8 @@ export function AmbientParticles() {
 
     function step() {
       t += 0.016;
+      colorCurrent = stepRGB(colorCurrent, colorTarget, 16);
+      color = rgbToCss(colorCurrent);
       scrollImpulse *= 0.92;
       scrollActivity *= 0.9;
 
@@ -242,8 +251,8 @@ export function AmbientParticles() {
   );
 }
 
-// "H S% L%" (raw CSS custom-property value) -> "r, g, b"
-function hslToRgbTriplet(raw: string): string {
+// "H S% L%" (raw CSS custom-property value) -> [r, g, b]
+function hslToRgbParts(raw: string): RGB {
   const [h, s, l] = raw
     .trim()
     .split(/\s+/)
@@ -254,5 +263,5 @@ function hslToRgbTriplet(raw: string): string {
   const a = sN * Math.min(lN, 1 - lN);
   const f = (n: number) => lN - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
   const toByte = (n: number) => Math.round(f(n) * 255);
-  return `${toByte(0)}, ${toByte(8)}, ${toByte(4)}`;
+  return [toByte(0), toByte(8), toByte(4)];
 }

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import { type RGB, stepRGB, stepScalar, rgbToCss } from "@/lib/color-spring";
 
 // The hero's Saturn-style debris ring, without the globe it orbits there —
 // a standalone, bigger version of the same effect for every page except the
@@ -49,41 +50,58 @@ export function OrbitDebris() {
     let palette: string[] = [];
     let coreColor = "255, 200, 80";
     // Drives the light-mode sun glow below — dark mode keeps no such glow,
-    // matching how subtle (halo-free) this ring already was there.
-    let isLightMode = false;
+    // matching how subtle (halo-free) this ring already was there. Eased
+    // (not snapped) across a theme switch, same as particle-field.tsx.
+    let lightMixTarget = 0;
+    let lightMix = 0;
+    let primaryTarget: RGB = [255, 200, 80];
+    let accentTarget: RGB = [255, 200, 80];
+    let primaryCurrent: RGB = [...primaryTarget];
+    let accentCurrent: RGB = [...accentTarget];
+    const parts = (style: CSSStyleDeclaration, name: string): RGB => {
+      const [h, s, l] = style
+        .getPropertyValue(name)
+        .trim()
+        .split(/\s+/)
+        .map((v) => parseFloat(v));
+      const sN = (s || 0) / 100;
+      const lN = (l || 0) / 100;
+      const k = (n: number) => (n + h / 30) % 12;
+      const a = sN * Math.min(lN, 1 - lN);
+      const f = (n: number) => lN - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+      return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
+    };
     const readColors = () => {
-      isLightMode = !document.documentElement.classList.contains("dark");
+      lightMixTarget = document.documentElement.classList.contains("dark") ? 0 : 1;
       const style = getComputedStyle(document.documentElement);
-      const parts = (name: string): [number, number, number] => {
-        const [h, s, l] = style
-          .getPropertyValue(name)
-          .trim()
-          .split(/\s+/)
-          .map((v) => parseFloat(v));
-        const sN = (s || 0) / 100;
-        const lN = (l || 0) / 100;
-        const k = (n: number) => (n + h / 30) % 12;
-        const a = sN * Math.min(lN, 1 - lN);
-        const f = (n: number) => lN - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-        return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
-      };
       // --sun-core/--sun-mid alias back to --primary/--accent in dark mode
       // (unchanged look) but go warm gold/amber in light mode — see
       // globals.css.
-      const primary = parts("--sun-core");
-      const accent = parts("--sun-mid");
-      coreColor = primary.join(", ");
-      palette = Array.from({ length: PALETTE_STEPS }, (_, i) => {
-        const t = i / (PALETTE_STEPS - 1);
-        const r = Math.round(accent[0] + (primary[0] - accent[0]) * t);
-        const g = Math.round(accent[1] + (primary[1] - accent[1]) * t);
-        const b = Math.round(accent[2] + (primary[2] - accent[2]) * t);
-        return `rgb(${r}, ${g}, ${b})`;
-      });
+      primaryTarget = parts(style, "--sun-core");
+      accentTarget = parts(style, "--sun-mid");
     };
     readColors();
+    // First paint shows the resolved theme immediately — only actual
+    // switches after mount should ease.
+    primaryCurrent = [...primaryTarget];
+    accentCurrent = [...accentTarget];
+    lightMix = lightMixTarget;
     const colorObserver = new MutationObserver(readColors);
     colorObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-network"] });
+
+    function updateColors() {
+      primaryCurrent = stepRGB(primaryCurrent, primaryTarget, 16);
+      accentCurrent = stepRGB(accentCurrent, accentTarget, 16);
+      lightMix = stepScalar(lightMix, lightMixTarget, 16);
+      coreColor = rgbToCss(primaryCurrent);
+      palette = Array.from({ length: PALETTE_STEPS }, (_, i) => {
+        const t = i / (PALETTE_STEPS - 1);
+        const r = Math.round(accentCurrent[0] + (primaryCurrent[0] - accentCurrent[0]) * t);
+        const g = Math.round(accentCurrent[1] + (primaryCurrent[1] - accentCurrent[1]) * t);
+        const b = Math.round(accentCurrent[2] + (primaryCurrent[2] - accentCurrent[2]) * t);
+        return `rgb(${r}, ${g}, ${b})`;
+      });
+    }
 
     const debris: DebrisParticle[] = Array.from({ length: DEBRIS_COUNT }, () => {
       const radius = DEBRIS_INNER + Math.random() * (DEBRIS_OUTER - DEBRIS_INNER);
@@ -134,16 +152,18 @@ export function OrbitDebris() {
     }
 
     function step() {
+      updateColors();
       ctx!.clearRect(0, 0, width, height);
 
       // Light mode only — a warm glow centered on the ring, echoing the
       // hero's "globe as a sun" look even where there's no globe to anchor
       // it, so the whole site's particle system reads as one consistent
-      // sunlit scene.
-      if (isLightMode) {
+      // sunlit scene. Scaled by lightMix (eased toward 0/1) so it blooms
+      // in/out gracefully across a theme switch instead of popping.
+      if (lightMix > 0.005) {
         for (let i = 3; i >= 0; i--) {
           const rr = R * (0.85 + i * 0.3);
-          const alpha = 0.09 - i * 0.017;
+          const alpha = (0.09 - i * 0.017) * lightMix;
           ctx!.fillStyle = `rgba(${coreColor}, ${alpha})`;
           ctx!.beginPath();
           ctx!.arc(cx, cy, rr, 0, Math.PI * 2);

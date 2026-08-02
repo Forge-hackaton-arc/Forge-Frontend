@@ -73,6 +73,26 @@
     --sun-core: 38 88% 46%; /* globe dots, ring lines — gold */
     --sun-mid: 22 85% 50%; /* link web, debris — burnt orange */
     --sun-pulse: 46 95% 52%; /* settlement pulses, satellites — bright sunlight */
+
+    /* Warm accent for text/borders sprinkled around light-mode content —
+       distinct from --primary (which stays teal, untouched, for buttons/
+       links) so this reads as "ambient sunlight," not a brand-color change.
+       Dark mode aliases this back to --accent, so it's a no-op there. */
+    --sun-text: 26 78% 38%;
+
+    /* Directional "sunlit" shadow — as if every panel is lit from the globe/
+       ring overhead and casting a soft warm shadow down and away from it.
+       Dark mode aliases back to a plain black shadow (its pre-existing
+       look), so only light mode gets the tint + offset. */
+    --shadow-color: var(--sun-core);
+    --shadow-opacity: 0.16;
+    --shadow-x: 0px;
+    --shadow-y: 10px;
+    --shadow-blur: 24px;
+    --shadow-spread: -8px;
+    --shadow-opacity-2: 0.08;
+    --shadow-y-2: 2px;
+    --shadow-blur-2: 6px;
   }
 
   /* Testnet is the safe default (teal/violet/green, matches --primary etc).
@@ -133,6 +153,17 @@
     --sun-core: var(--primary);
     --sun-mid: var(--accent);
     --sun-pulse: var(--status-completed);
+    --sun-text: var(--foreground);
+
+    --shadow-color: 0 0% 0%;
+    --shadow-opacity: 0.2;
+    --shadow-x: 0px;
+    --shadow-y: 4px;
+    --shadow-blur: 10px;
+    --shadow-spread: -2px;
+    --shadow-opacity-2: 0.14;
+    --shadow-y-2: 1px;
+    --shadow-blur-2: 3px;
   }
 }
 
@@ -187,5 +218,42 @@
 
   .font-tabular {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Replaces the old static shadow-lg/shadow-black utilities on panels —
+     warm + offset downward from the globe/ring overhead in light mode,
+     a plain black shadow (unchanged look) in dark mode. See --shadow-* in
+     globals.css :root/.dark. */
+  .sun-shadow {
+    box-shadow:
+      var(--shadow-x) var(--shadow-y) var(--shadow-blur) var(--shadow-spread) hsl(var(--shadow-color) / var(--shadow-opacity)),
+      0 var(--shadow-y-2) var(--shadow-blur-2) 0 hsl(var(--shadow-color) / var(--shadow-opacity-2));
+  }
+
+  /* Warm ambient text accent — see --sun-text (no-op in dark mode). */
+  .text-sun {
+    color: hsl(var(--sun-text));
+  }
+}
+
+/* Circular "reveal" transition anchored at the theme-toggle button, so
+   switching modes feels like the new theme washes outward from the switch
+   itself rather than an instant flip. Falls back silently to a plain
+   instant swap in browsers without the View Transitions API (see
+   theme-toggle.tsx — it only calls startViewTransition when supported). */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: none;
+  }
+  ::view-transition-new(root) {
+    animation: sun-reveal 700ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  }
+  @keyframes sun-reveal {
+    from {
+      clip-path: circle(0% at var(--theme-toggle-x, 50%) var(--theme-toggle-y, 50%));
+    }
+    to {
+      clip-path: circle(140% at var(--theme-toggle-x, 50%) var(--theme-toggle-y, 50%));
+    }
   }
 }

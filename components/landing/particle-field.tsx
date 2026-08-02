@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { type RGB, stepRGB, stepScalar, rgbToCss } from "@/lib/color-spring";
 
 // ---------------------------------------------------------------------------
 // The hero visual, one canvas, layers drawn back to front:
@@ -129,35 +130,72 @@ export function ParticleField({ className }: { className?: string }) {
     let t = 0;
     const mouse = { x: -9999, y: -9999, active: false };
 
-    let nodeColor = "150, 150, 150";
-    let linkColor = "150, 150, 150";
-    let pulseColor = "120, 220, 150";
+    // Target colors (set instantly on theme change) vs. current colors (eased
+    // toward the target every frame, see stepRGB below) — this is what makes
+    // switching themes read as the globe/rings gracefully shifting hue
+    // ("night to day") instead of jump-cutting the instant the class flips.
+    let nodeTarget: RGB = [150, 150, 150];
+    let linkTarget: RGB = [150, 150, 150];
+    let pulseTarget: RGB = [120, 220, 150];
+    let crestTarget: RGB = [150, 150, 150];
+    let troughTarget: RGB = [150, 150, 150];
+    let nodeCurrent: RGB = [...nodeTarget];
+    let linkCurrent: RGB = [...linkTarget];
+    let pulseCurrent: RGB = [...pulseTarget];
+    let crestCurrent: RGB = [...crestTarget];
+    let troughCurrent: RGB = [...troughTarget];
+    let nodeColor = rgbToCss(nodeCurrent);
+    let linkColor = rgbToCss(linkCurrent);
+    let pulseColor = rgbToCss(pulseCurrent);
     let palette: string[] = [];
-    // Drives the halo boost below — the globe reads as an actual sun only
-    // in light mode; dark mode's halo stays exactly as subtle as before.
-    let isLightMode = false;
+    // Drives the halo boost below — the globe reads as an actual sun only in
+    // light mode; eased like the colors above so the halo blooms in/out
+    // gracefully rather than snapping.
+    let lightMixTarget = 0;
+    let lightMix = 0;
     const readColors = () => {
-      isLightMode = !document.documentElement.classList.contains("dark");
+      lightMixTarget = document.documentElement.classList.contains("dark") ? 0 : 1;
       const style = getComputedStyle(document.documentElement);
       // --sun-* aliases back to --primary/--accent/--status-completed in
       // dark mode (unchanged look) but goes warm gold/amber in light mode —
       // see globals.css.
-      nodeColor = hslToRgbTriplet(style.getPropertyValue("--sun-core"));
-      linkColor = hslToRgbTriplet(style.getPropertyValue("--sun-mid"));
-      pulseColor = hslToRgbTriplet(style.getPropertyValue("--sun-pulse"));
-      const crest = hslToRgbParts(style.getPropertyValue("--sun-core"));
-      const trough = hslToRgbParts(style.getPropertyValue("--sun-mid"));
-      palette = Array.from({ length: PALETTE_STEPS }, (_, i) => {
-        const f = i / (PALETTE_STEPS - 1);
-        const r = Math.round(trough[0] + (crest[0] - trough[0]) * f);
-        const g = Math.round(trough[1] + (crest[1] - trough[1]) * f);
-        const b = Math.round(trough[2] + (crest[2] - trough[2]) * f);
-        return `rgb(${r}, ${g}, ${b})`;
-      });
+      nodeTarget = hslToRgbParts(style.getPropertyValue("--sun-core"));
+      linkTarget = hslToRgbParts(style.getPropertyValue("--sun-mid"));
+      pulseTarget = hslToRgbParts(style.getPropertyValue("--sun-pulse"));
+      crestTarget = nodeTarget;
+      troughTarget = linkTarget;
     };
     readColors();
+    // First paint should show the resolved theme immediately, not ease in
+    // from gray — only actual theme *switches* (MutationObserver firing
+    // after mount) should animate.
+    nodeCurrent = [...nodeTarget];
+    linkCurrent = [...linkTarget];
+    pulseCurrent = [...pulseTarget];
+    crestCurrent = [...crestTarget];
+    troughCurrent = [...troughTarget];
+    lightMix = lightMixTarget;
     const colorObserver = new MutationObserver(readColors);
     colorObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-network"] });
+
+    function updateColors() {
+      nodeCurrent = stepRGB(nodeCurrent, nodeTarget, 16);
+      linkCurrent = stepRGB(linkCurrent, linkTarget, 16);
+      pulseCurrent = stepRGB(pulseCurrent, pulseTarget, 16);
+      crestCurrent = stepRGB(crestCurrent, crestTarget, 16);
+      troughCurrent = stepRGB(troughCurrent, troughTarget, 16);
+      lightMix = stepScalar(lightMix, lightMixTarget, 16);
+      nodeColor = rgbToCss(nodeCurrent);
+      linkColor = rgbToCss(linkCurrent);
+      pulseColor = rgbToCss(pulseCurrent);
+      palette = Array.from({ length: PALETTE_STEPS }, (_, i) => {
+        const f = i / (PALETTE_STEPS - 1);
+        const r = Math.round(troughCurrent[0] + (crestCurrent[0] - troughCurrent[0]) * f);
+        const g = Math.round(troughCurrent[1] + (crestCurrent[1] - troughCurrent[1]) * f);
+        const b = Math.round(troughCurrent[2] + (crestCurrent[2] - troughCurrent[2]) * f);
+        return `rgb(${r}, ${g}, ${b})`;
+      });
+    }
 
     // ---- globe geometry: fibonacci sphere + fixed neighbor links ----------
     const spherePoints: [number, number, number][] = [];
@@ -367,13 +405,15 @@ export function ParticleField({ className }: { className?: string }) {
     function drawHalo() {
       const breathe = R * (1.08 + 0.05 * Math.sin(t * 0.5));
       // In light mode the globe is meant to read as an actual sun — a
-      // bigger, brighter, warmer glow than dark mode's subtle halo.
-      const reach = isLightMode ? 1.55 : 1.15;
-      const step = isLightMode ? 0.32 : 0.16;
-      const baseAlpha = isLightMode ? 0.1 : 0.05;
-      const alphaStep = isLightMode ? 0.019 : 0.011;
+      // bigger, brighter, warmer glow than dark mode's subtle halo. Eased
+      // via lightMix (see updateColors) so it blooms in/out gracefully
+      // across a theme switch instead of snapping.
+      const reach = 1.15 + 0.4 * lightMix;
+      const ringStep = 0.16 + 0.16 * lightMix;
+      const baseAlpha = 0.05 + 0.05 * lightMix;
+      const alphaStep = 0.011 + 0.008 * lightMix;
       for (let i = 3; i >= 0; i--) {
-        const rr = breathe * (reach + i * step);
+        const rr = breathe * (reach + i * ringStep);
         const alpha = baseAlpha - i * alphaStep;
         ctx!.fillStyle = `rgba(${nodeColor}, ${alpha})`;
         ctx!.beginPath();
@@ -619,6 +659,7 @@ export function ParticleField({ className }: { className?: string }) {
 
     function step() {
       t += 0.016;
+      updateColors();
       ctx!.clearRect(0, 0, width, height);
 
       drawGlobe();
@@ -743,9 +784,4 @@ function hslToRgbParts(raw: string): [number, number, number] {
   const f = (n: number) => lN - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
   const toByte = (n: number) => Math.round(f(n) * 255);
   return [toByte(0), toByte(8), toByte(4)];
-}
-
-function hslToRgbTriplet(raw: string): string {
-  const [r, g, b] = hslToRgbParts(raw);
-  return `${r}, ${g}, ${b}`;
 }

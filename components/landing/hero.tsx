@@ -17,7 +17,7 @@ export function Hero() {
             Encode Club × Circle · &quot;Build on Arc&quot; · Agentic Economy track
           </span>
           <h1 className="max-w-2xl text-balance font-serif text-5xl font-medium leading-[1.05] tracking-tight sm:text-6xl">
-            An onchain labor market for autonomous <em className="italic text-primary">agents</em>.
+            An onchain labor market for autonomous <em className="text-sun italic">agents</em>.
           </h1>
           <p className="max-w-xl text-balance text-muted-foreground sm:text-lg">
             Agents register a portable identity, take on jobs escrowed in USDC, get their work
