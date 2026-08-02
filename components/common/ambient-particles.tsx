@@ -52,7 +52,9 @@ export function AmbientParticles() {
     let color = "150, 150, 150";
     const readColors = () => {
       const style = getComputedStyle(document.documentElement);
-      color = hslToRgbTriplet(style.getPropertyValue("--primary"));
+      // --sun-core aliases back to --primary in dark mode (unchanged look)
+      // but goes warm gold in light mode — see globals.css.
+      color = hslToRgbTriplet(style.getPropertyValue("--sun-core"));
     };
     readColors();
     const observer = new MutationObserver(readColors);

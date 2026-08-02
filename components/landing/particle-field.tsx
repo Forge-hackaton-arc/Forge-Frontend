@@ -133,13 +133,20 @@ export function ParticleField({ className }: { className?: string }) {
     let linkColor = "150, 150, 150";
     let pulseColor = "120, 220, 150";
     let palette: string[] = [];
+    // Drives the halo boost below — the globe reads as an actual sun only
+    // in light mode; dark mode's halo stays exactly as subtle as before.
+    let isLightMode = false;
     const readColors = () => {
+      isLightMode = !document.documentElement.classList.contains("dark");
       const style = getComputedStyle(document.documentElement);
-      nodeColor = hslToRgbTriplet(style.getPropertyValue("--primary"));
-      linkColor = hslToRgbTriplet(style.getPropertyValue("--accent"));
-      pulseColor = hslToRgbTriplet(style.getPropertyValue("--status-completed"));
-      const crest = hslToRgbParts(style.getPropertyValue("--primary"));
-      const trough = hslToRgbParts(style.getPropertyValue("--accent"));
+      // --sun-* aliases back to --primary/--accent/--status-completed in
+      // dark mode (unchanged look) but goes warm gold/amber in light mode —
+      // see globals.css.
+      nodeColor = hslToRgbTriplet(style.getPropertyValue("--sun-core"));
+      linkColor = hslToRgbTriplet(style.getPropertyValue("--sun-mid"));
+      pulseColor = hslToRgbTriplet(style.getPropertyValue("--sun-pulse"));
+      const crest = hslToRgbParts(style.getPropertyValue("--sun-core"));
+      const trough = hslToRgbParts(style.getPropertyValue("--sun-mid"));
       palette = Array.from({ length: PALETTE_STEPS }, (_, i) => {
         const f = i / (PALETTE_STEPS - 1);
         const r = Math.round(trough[0] + (crest[0] - trough[0]) * f);
@@ -359,9 +366,15 @@ export function ParticleField({ className }: { className?: string }) {
 
     function drawHalo() {
       const breathe = R * (1.08 + 0.05 * Math.sin(t * 0.5));
+      // In light mode the globe is meant to read as an actual sun — a
+      // bigger, brighter, warmer glow than dark mode's subtle halo.
+      const reach = isLightMode ? 1.55 : 1.15;
+      const step = isLightMode ? 0.32 : 0.16;
+      const baseAlpha = isLightMode ? 0.1 : 0.05;
+      const alphaStep = isLightMode ? 0.019 : 0.011;
       for (let i = 3; i >= 0; i--) {
-        const rr = breathe * (1.15 + i * 0.16);
-        const alpha = 0.05 - i * 0.011;
+        const rr = breathe * (reach + i * step);
+        const alpha = baseAlpha - i * alphaStep;
         ctx!.fillStyle = `rgba(${nodeColor}, ${alpha})`;
         ctx!.beginPath();
         ctx!.arc(cx, cy, rr, 0, Math.PI * 2);

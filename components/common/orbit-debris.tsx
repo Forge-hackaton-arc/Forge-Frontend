@@ -47,7 +47,12 @@ export function OrbitDebris() {
     const mouse = { x: -9999, y: -9999, active: false };
 
     let palette: string[] = [];
+    let coreColor = "255, 200, 80";
+    // Drives the light-mode sun glow below — dark mode keeps no such glow,
+    // matching how subtle (halo-free) this ring already was there.
+    let isLightMode = false;
     const readColors = () => {
+      isLightMode = !document.documentElement.classList.contains("dark");
       const style = getComputedStyle(document.documentElement);
       const parts = (name: string): [number, number, number] => {
         const [h, s, l] = style
@@ -62,8 +67,12 @@ export function OrbitDebris() {
         const f = (n: number) => lN - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
         return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
       };
-      const primary = parts("--primary");
-      const accent = parts("--accent");
+      // --sun-core/--sun-mid alias back to --primary/--accent in dark mode
+      // (unchanged look) but go warm gold/amber in light mode — see
+      // globals.css.
+      const primary = parts("--sun-core");
+      const accent = parts("--sun-mid");
+      coreColor = primary.join(", ");
       palette = Array.from({ length: PALETTE_STEPS }, (_, i) => {
         const t = i / (PALETTE_STEPS - 1);
         const r = Math.round(accent[0] + (primary[0] - accent[0]) * t);
@@ -126,6 +135,21 @@ export function OrbitDebris() {
 
     function step() {
       ctx!.clearRect(0, 0, width, height);
+
+      // Light mode only — a warm glow centered on the ring, echoing the
+      // hero's "globe as a sun" look even where there's no globe to anchor
+      // it, so the whole site's particle system reads as one consistent
+      // sunlit scene.
+      if (isLightMode) {
+        for (let i = 3; i >= 0; i--) {
+          const rr = R * (0.85 + i * 0.3);
+          const alpha = 0.09 - i * 0.017;
+          ctx!.fillStyle = `rgba(${coreColor}, ${alpha})`;
+          ctx!.beginPath();
+          ctx!.arc(cx, cy, rr, 0, Math.PI * 2);
+          ctx!.fill();
+        }
+      }
 
       for (const d of debris) {
         d.angle += d.angSpeed;

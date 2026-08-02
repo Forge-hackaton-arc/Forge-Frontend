@@ -4,23 +4,28 @@
 
 @layer base {
   :root {
-    --background: 210 25% 98%;
-    --foreground: 222 47% 11%;
+    /* Warm "sunny" light mode — cream/ivory instead of cool blue-white, so
+       the particle/ring/sphere system (recolored gold/amber below) has a
+       background that actually reads as sunlit rather than clashing with
+       it. Kept high-lightness/moderate-saturation throughout so text
+       contrast stays exactly as strong as the old cool-toned version. */
+    --background: 38 55% 96%;
+    --foreground: 26 35% 14%;
 
-    --panel: 0 0% 100%;
-    --panel-raised: 210 20% 96%;
+    --panel: 40 60% 98%;
+    --panel-raised: 38 45% 93%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: 40 60% 98%;
+    --card-foreground: 26 35% 14%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 40 60% 98%;
+    --popover-foreground: 26 35% 14%;
 
-    --border: 214 20% 88%;
-    --input: 214 20% 88%;
+    --border: 36 35% 85%;
+    --input: 36 35% 85%;
 
-    --muted: 210 20% 94%;
-    --muted-foreground: 215 15% 42%;
+    --muted: 38 40% 91%;
+    --muted-foreground: 28 18% 38%;
 
     --primary: 174 65% 34%;
     --primary-foreground: 0 0% 100%;
@@ -55,6 +60,19 @@
     --identicon-bg-l: 94%;
     --identicon-fg-s: 58%;
     --identicon-fg-l: 46%;
+
+    /* The globe/rings/debris particle system's own palette — read by
+       particle-field.tsx, ambient-particles.tsx, and orbit-debris.tsx
+       instead of --primary/--accent directly, so it can be recolored on
+       its own without touching buttons/links/badges. In dark mode these
+       just alias back to the existing accents (see .dark below), so dark
+       mode's particle colors are untouched. In light mode: warm gold/
+       amber/sunlight tones instead of teal/violet, so the whole scene
+       reads as sunlit against the warm cream background above, centered
+       on the globe like a sun rather than clashing with it. */
+    --sun-core: 38 88% 46%; /* globe dots, ring lines — gold */
+    --sun-mid: 22 85% 50%; /* link web, debris — burnt orange */
+    --sun-pulse: 46 95% 52%; /* settlement pulses, satellites — bright sunlight */
   }
 
   /* Testnet is the safe default (teal/violet/green, matches --primary etc).
@@ -109,6 +127,12 @@
     --identicon-bg-l: 16%;
     --identicon-fg-s: 65%;
     --identicon-fg-l: 58%;
+
+    /* Dark mode's particle system keeps the exact teal/violet/green look it
+       already had — no "sun" retint, that's a light-mode-only concept. */
+    --sun-core: var(--primary);
+    --sun-mid: var(--accent);
+    --sun-pulse: var(--status-completed);
   }
 }
 
