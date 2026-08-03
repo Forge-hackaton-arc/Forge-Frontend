@@ -177,7 +177,7 @@ export function CreateJobDialog({ onCreated }: CreateJobDialogProps) {
             ) : (
               <Input id="evaluator" className="font-mono text-xs" value={evaluatorAddress} onChange={(e) => setEvaluatorAddress(e.target.value)} required placeholder="Loading agents…" />
             )}
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Must differ from the provider&apos;s wallet. The ReputationRegistry contract rejects self-feedback.
             </p>
           </div>

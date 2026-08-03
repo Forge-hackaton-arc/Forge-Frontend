@@ -8,16 +8,24 @@ import { explorerAddressUrl, explorerTxUrl } from "@/lib/constants";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Identicon } from "./identicon";
 
+function isEthAddress(value: string) {
+  return /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
 interface AddressPillProps {
   value: string;
   kind?: "address" | "tx";
   /** Set when this value came from a mocked/simulated response — never linked to the explorer. */
   isMock?: boolean;
+  /** Suppress the explorer link even for valid addresses (e.g. agent IDs in payment feed that aren't wallet signers). */
+  noExplorer?: boolean;
   className?: string;
 }
 
-export function AddressPill({ value, kind = "address", isMock = false, className }: AddressPillProps) {
+export function AddressPill({ value, kind = "address", isMock = false, noExplorer = false, className }: AddressPillProps) {
   const [copied, setCopied] = React.useState(false);
+  // Only link to the explorer if the value is a real 0x address (not a numeric agent token ID) and linking is allowed
+  const canLink = !isMock && !noExplorer && (kind === "tx" ? value.startsWith("0x") : isEthAddress(value));
   const href = kind === "address" ? explorerAddressUrl(value) : explorerTxUrl(value);
 
   const copy = async (e: React.MouseEvent) => {
@@ -32,7 +40,7 @@ export function AddressPill({ value, kind = "address", isMock = false, className
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border py-0.5 pl-0.5 pr-2 font-mono text-xs",
-        isMock ? "border-dashed border-muted-foreground/40 text-muted-foreground" : "border-border text-foreground/90",
+        "border-border text-foreground/90",
         className
       )}
     >
@@ -41,21 +49,12 @@ export function AddressPill({ value, kind = "address", isMock = false, className
       <button onClick={copy} className="opacity-60 transition-opacity hover:opacity-100" aria-label="Copy">
         {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
       </button>
-      {!isMock && <ExternalLink className="h-3 w-3 opacity-40" />}
+      {canLink && <ExternalLink className="h-3 w-3 opacity-40" />}
     </span>
   );
 
-  if (isMock) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="cursor-default">{body}</span>
-          </TooltipTrigger>
-          <TooltipContent>Simulated. Not a real Arc Testnet {kind === "tx" ? "transaction" : "address"}.</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
+  if (!canLink) {
+    return <span className="cursor-default">{body}</span>;
   }
 
   return (

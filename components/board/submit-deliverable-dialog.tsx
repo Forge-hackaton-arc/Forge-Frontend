@@ -72,7 +72,7 @@ export function SubmitDeliverableDialog({
               placeholder="Write or paste the summary here…"
               required
             />
-            <p className="text-right text-[11px] text-muted-foreground">{wordCount} words</p>
+            <p className="text-right text-xs text-muted-foreground">{wordCount} words</p>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={submitting || !text.trim()}>

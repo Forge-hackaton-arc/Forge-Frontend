@@ -403,23 +403,12 @@ export function ParticleField({ className }: { className?: string }) {
     }
 
     function drawHalo() {
+      // Single subtle inner glow only — no outer shadow rings.
       const breathe = R * (1.08 + 0.05 * Math.sin(t * 0.5));
-      // In light mode the globe is meant to read as an actual sun — a
-      // bigger, brighter, warmer glow than dark mode's subtle halo. Eased
-      // via lightMix (see updateColors) so it blooms in/out gracefully
-      // across a theme switch instead of snapping.
-      const reach = 1.15 + 0.4 * lightMix;
-      const ringStep = 0.16 + 0.16 * lightMix;
-      const baseAlpha = 0.05 + 0.05 * lightMix;
-      const alphaStep = 0.011 + 0.008 * lightMix;
-      for (let i = 3; i >= 0; i--) {
-        const rr = breathe * (reach + i * ringStep);
-        const alpha = baseAlpha - i * alphaStep;
-        ctx!.fillStyle = `rgba(${nodeColor}, ${alpha})`;
-        ctx!.beginPath();
-        ctx!.arc(cx, cy, rr, 0, Math.PI * 2);
-        ctx!.fill();
-      }
+      ctx!.fillStyle = `rgba(${nodeColor}, 0.04)`;
+      ctx!.beginPath();
+      ctx!.arc(cx, cy, breathe * 1.18, 0, Math.PI * 2);
+      ctx!.fill();
     }
 
     function drawRings(cosY: number, sinY: number, cosP: number, sinP: number) {

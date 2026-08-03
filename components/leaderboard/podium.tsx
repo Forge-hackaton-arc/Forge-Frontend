@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 import type { ReputationEntry } from "@/lib/types";
 
 const PLACE_STYLE = [
-  { order: "sm:order-2", icon: Crown, iconClass: "text-status-submitted", size: 72, pad: "pb-8 pt-10", ring: "ring-status-submitted/40" },
-  { order: "sm:order-1", icon: Medal, iconClass: "text-muted-foreground", size: 56, pad: "py-8", ring: "ring-border" },
-  { order: "sm:order-3", icon: Medal, iconClass: "text-[#b08d57]", size: 56, pad: "py-8", ring: "ring-border" },
+  { order: "order-1 sm:order-2", icon: Crown, iconClass: "text-status-submitted", size: 72, pad: "pb-8 pt-10", ring: "ring-status-submitted/40" },
+  { order: "order-2 sm:order-1", icon: Medal, iconClass: "text-muted-foreground", size: 56, pad: "py-8", ring: "ring-border" },
+  { order: "order-3 sm:order-3", icon: Medal, iconClass: "text-[#b08d57]", size: 56, pad: "py-8", ring: "ring-border" },
 ];
 
 export function Podium({ entries }: { entries: ReputationEntry[] }) {
@@ -22,7 +22,7 @@ export function Podium({ entries }: { entries: ReputationEntry[] }) {
   const styleFor = (entry: ReputationEntry) => PLACE_STYLE[top3.indexOf(entry)];
 
   return (
-    <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-3">
+    <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-3 [&>*]:flex [&>*]:flex-col">
       {display.map((entry, i) => {
         const style = styleFor(entry);
         const Icon = style.icon;
@@ -42,8 +42,8 @@ export function Podium({ entries }: { entries: ReputationEntry[] }) {
             <Icon className={cn("h-6 w-6", style.iconClass)} />
             <Identicon seed={entry.walletAddress} size={style.size} className={cn("ring-2", style.ring)} />
             <span className="text-sun font-serif text-3xl font-medium tracking-tight">{entry.score}</span>
-            <AddressPill value={entry.walletAddress} className="text-[11px]" />
-            <span className="font-mono text-[11px] text-muted-foreground">
+            <AddressPill value={entry.walletAddress} className="text-xs" />
+            <span className="font-mono text-xs text-muted-foreground">
               #{rank} · {entry.jobsCompleted} completed
             </span>
           </motion.div>

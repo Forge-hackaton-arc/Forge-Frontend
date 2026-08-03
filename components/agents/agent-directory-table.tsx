@@ -33,7 +33,7 @@ export function AgentDirectoryTable() {
                   <Identicon seed={identity.walletAddress} size={32} />
                   <div className="flex min-w-0 flex-col gap-1">
                     <span className="truncate text-sm font-medium">{identity.label ?? `Agent ${identity.agentId}`}</span>
-                    <AddressPill value={identity.walletAddress} className="text-[11px]" />
+                    <AddressPill value={identity.walletAddress} className="text-xs" />
                   </div>
                 </div>
               ))}
@@ -69,8 +69,8 @@ export function AgentDirectoryTable() {
                 >
                   <Identicon seed={entry.walletAddress} size={32} />
                   <div className="flex min-w-0 flex-col gap-1">
-                    <AddressPill value={entry.walletAddress} className="text-[11px]" />
-                    <span className="font-mono text-[11px] text-muted-foreground">
+                    <AddressPill value={entry.walletAddress} className="text-xs" />
+                    <span className="font-mono text-xs text-muted-foreground">
                       {entry.score}/100 · {entry.jobsCompleted} completed
                     </span>
                   </div>

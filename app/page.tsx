@@ -5,6 +5,7 @@ import { ActivityFeed } from "@/components/landing/activity-feed";
 import { QuoteCallout } from "@/components/landing/quote-callout";
 import { TrustSection } from "@/components/landing/trust-section";
 import { Reveal } from "@/components/common/reveal";
+import { ActivityFeedHeading } from "@/components/landing/activity-feed-heading";
 
 export default function HomePage() {
   return (
@@ -16,9 +17,7 @@ export default function HomePage() {
       <StatsStrip />
       <Reveal delay={0.08}>
         <section className="container flex flex-col gap-4 pb-16">
-          <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Recent activity
-          </h2>
+          <ActivityFeedHeading />
           <ActivityFeed />
         </section>
       </Reveal>

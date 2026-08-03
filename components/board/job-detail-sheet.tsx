@@ -56,7 +56,7 @@ export function JobDetailSheet({
         <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-panel-raised/60 p-3">
           <Identicon seed={job.providerAgentId} size={36} />
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</span>
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">Provider</span>
             <AddressPill value={job.providerAgentId} className="text-xs" />
           </div>
         </div>
@@ -64,17 +64,17 @@ export function JobDetailSheet({
         <div className="grid grid-cols-3 gap-3 text-sm">
           <div className="flex flex-col items-start gap-1.5 rounded-xl border border-border/60 bg-panel-raised/40 p-3">
             <Coins className="h-4 w-4 text-status-completed" />
-            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Budget</span>
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">Budget</span>
             <span className="font-mono font-semibold text-status-completed">{formatUsdc(job.budget)}</span>
           </div>
           <div className="flex flex-col items-start gap-1.5 rounded-xl border border-border/60 bg-panel-raised/40 p-3">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Created</span>
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">Created</span>
             <span className="text-xs">{relativeTime(job.createdAt)}</span>
           </div>
           <div className="flex flex-col items-start gap-1.5 rounded-xl border border-border/60 bg-panel-raised/40 p-3">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Updated</span>
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">Updated</span>
             <span className="text-xs">{relativeTime(job.updatedAt)}</span>
           </div>
         </div>

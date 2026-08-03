@@ -9,23 +9,23 @@
        background that actually reads as sunlit rather than clashing with
        it. Kept high-lightness/moderate-saturation throughout so text
        contrast stays exactly as strong as the old cool-toned version. */
-    --background: 38 55% 96%;
-    --foreground: 26 35% 14%;
+    --background: 216 18% 97%;
+    --foreground: 222 35% 12%;
 
-    --panel: 40 60% 98%;
-    --panel-raised: 38 45% 93%;
+    --panel: 216 20% 99%;
+    --panel-raised: 216 16% 93%;
 
-    --card: 40 60% 98%;
-    --card-foreground: 26 35% 14%;
+    --card: 216 20% 99%;
+    --card-foreground: 222 35% 12%;
 
-    --popover: 40 60% 98%;
-    --popover-foreground: 26 35% 14%;
+    --popover: 216 22% 98%;
+    --popover-foreground: 222 35% 12%;
 
-    --border: 36 35% 85%;
-    --input: 36 35% 85%;
+    --border: 216 18% 87%;
+    --input: 216 18% 87%;
 
-    --muted: 38 40% 91%;
-    --muted-foreground: 28 18% 38%;
+    --muted: 216 16% 92%;
+    --muted-foreground: 215 18% 32%;
 
     --primary: 174 65% 34%;
     --primary-foreground: 0 0% 100%;

@@ -17,7 +17,7 @@ export function TickerBar() {
 
   if (loading || events.length === 0) {
     return (
-      <div className="py-3 text-center text-xs text-muted-foreground">
+      <div className="flex min-h-[48px] items-center justify-center text-xs text-muted-foreground">
         {loading ? "Loading payment activity…" : "Waiting for the first agent-to-agent nanopayment…"}
       </div>
     );

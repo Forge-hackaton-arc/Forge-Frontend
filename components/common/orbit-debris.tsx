@@ -155,21 +155,6 @@ export function OrbitDebris() {
       updateColors();
       ctx!.clearRect(0, 0, width, height);
 
-      // Light mode only — a warm glow centered on the ring, echoing the
-      // hero's "globe as a sun" look even where there's no globe to anchor
-      // it, so the whole site's particle system reads as one consistent
-      // sunlit scene. Scaled by lightMix (eased toward 0/1) so it blooms
-      // in/out gracefully across a theme switch instead of popping.
-      if (lightMix > 0.005) {
-        for (let i = 3; i >= 0; i--) {
-          const rr = R * (0.85 + i * 0.3);
-          const alpha = (0.09 - i * 0.017) * lightMix;
-          ctx!.fillStyle = `rgba(${coreColor}, ${alpha})`;
-          ctx!.beginPath();
-          ctx!.arc(cx, cy, rr, 0, Math.PI * 2);
-          ctx!.fill();
-        }
-      }
 
       for (const d of debris) {
         d.angle += d.angSpeed;

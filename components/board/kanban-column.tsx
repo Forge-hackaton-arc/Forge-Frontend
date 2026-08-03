@@ -24,7 +24,7 @@ export function KanbanColumn({
       <div className="flex items-center gap-2 px-1">
         <StatusDot status={status} />
         <h3 className="font-display text-sm font-semibold tracking-tight">{JOB_STATUS_LABEL[status]}</h3>
-        <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+        <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground">
           {jobs.length}
         </span>
       </div>

@@ -83,7 +83,7 @@ export function ActivityFeed({ itemsPerPage = 10 }: ActivityFeedProps) {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.22, ease: "easeOut", delay: i * 0.03 }}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-panel/80 px-4 py-3 text-sm shadow-sm backdrop-blur-sm"
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border border-border/60 bg-panel/80 px-4 py-3 text-sm shadow-sm backdrop-blur-sm"
               >
                 {item.kind === "job" ? (
                   <>
@@ -98,19 +98,17 @@ export function ActivityFeed({ itemsPerPage = 10 }: ActivityFeedProps) {
                   </>
                 ) : (
                   <>
-                    <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
                       <ArrowUpRight className="h-4 w-4 shrink-0 text-primary" />
-                      <span className="flex min-w-0 items-center gap-1.5 text-xs">
-                        <AddressPill value={item.event.fromAgentId} className="text-[11px]" />
-                        <span className="text-muted-foreground">→</span>
-                        <AddressPill value={item.event.toAgentId} className="text-[11px]" />
-                      </span>
+                      <AddressPill value={item.event.fromAgentId} noExplorer className="text-xs shrink-0" />
+                      <span className="text-muted-foreground shrink-0">→</span>
+                      <AddressPill value={item.event.toAgentId} noExplorer className="text-xs shrink-0" />
                     </div>
-                    <div className="flex shrink-0 items-center gap-3">
-                      <span className="font-mono text-xs font-medium text-status-completed">
+                    <div className="flex shrink-0 items-center gap-3 pl-2">
+                      <span className="font-mono text-xs font-medium text-status-completed whitespace-nowrap">
                         {formatUsdc(item.event.amountUsdc)}
                       </span>
-                      <span className="text-xs text-muted-foreground">{relativeTime(item.at)}</span>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{relativeTime(item.at)}</span>
                     </div>
                   </>
                 )}

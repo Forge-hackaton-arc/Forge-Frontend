@@ -50,11 +50,11 @@ export function JobCard({
           <Coins className="h-3.5 w-3.5" />
           {formatUsdc(job.budget)}
         </span>
-        <span className="text-[11px] text-muted-foreground">{relativeTime(job.updatedAt)}</span>
+        <span className="text-xs text-muted-foreground">{relativeTime(job.updatedAt)}</span>
       </div>
       <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-2.5">
-        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Provider</span>
-        <AddressPill value={job.providerAgentId} className="text-[11px]" />
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">Provider</span>
+        <AddressPill value={job.providerAgentId} className="text-xs" />
       </div>
     </motion.div>
   );
