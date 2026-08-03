@@ -80,7 +80,7 @@ export function RegisterAgentForm() {
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-5 flex flex-col gap-3 rounded-xl border border-border/60 bg-panel-raised/60 p-4 text-sm"
+            className="mt-5 flex flex-col gap-3 rounded-xl border border-border/60 bg-panel-raised/60 p-4 text-sm !shadow-none"
           >
             <div className="flex items-center gap-3">
               <Identicon seed={result.walletAddress} size={40} />

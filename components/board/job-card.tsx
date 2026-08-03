@@ -40,7 +40,7 @@ export function JobCard({
       transition={{ duration: 0.2 }}
       style={{ borderLeftColor: `hsl(var(${JOB_STATUS_COLOR_VAR[job.status]}))` }}
       className={cn(
-        "sun-shadow w-full cursor-pointer rounded-xl border border-l-[3px] border-border/60 bg-panel/80 p-4 text-left backdrop-blur-sm transition-shadow hover:shadow-xl hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "w-full cursor-pointer rounded-xl border border-l-[3px] border-border/60 bg-panel/80 p-4 text-left backdrop-blur-sm !shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         highlighted && "animate-flash-highlight"
       )}
     >

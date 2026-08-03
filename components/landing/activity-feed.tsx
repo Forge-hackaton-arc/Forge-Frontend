@@ -83,7 +83,7 @@ export function ActivityFeed({ itemsPerPage = 10 }: ActivityFeedProps) {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.22, ease: "easeOut", delay: i * 0.03 }}
-                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border border-border/60 bg-panel/80 px-4 py-3 text-sm shadow-sm backdrop-blur-sm"
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border border-border/60 bg-panel/80 px-4 py-3 text-sm backdrop-blur-sm !shadow-none"
               >
                 {item.kind === "job" ? (
                   <>

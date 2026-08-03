@@ -28,7 +28,7 @@ export function AgentDirectoryTable() {
               {identities.map((identity) => (
                 <div
                   key={identity.agentId}
-                  className="flex items-center gap-3 rounded-xl border border-border/60 bg-panel-raised/40 p-3"
+                  className="flex items-center gap-3 rounded-xl border border-border/60 bg-panel-raised/40 p-3 !shadow-none"
                 >
                   <Identicon seed={identity.walletAddress} size={32} />
                   <div className="flex min-w-0 flex-col gap-1">
@@ -51,7 +51,7 @@ export function AgentDirectoryTable() {
           <DataSourceBanner source={source} />
         </CardHeader>
         <CardContent>
-          <div className="mb-4 flex items-start gap-2 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+          <div className="mb-4 flex items-start gap-2 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground !shadow-none">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
               There&apos;s no <code className="font-mono">GET /api/agents</code> endpoint yet, so agents that
@@ -65,7 +65,7 @@ export function AgentDirectoryTable() {
               {entries.map((entry) => (
                 <div
                   key={entry.agentId}
-                  className="flex items-center gap-3 rounded-xl border border-border/60 bg-panel-raised/40 p-3"
+                  className="flex items-center gap-3 rounded-xl border border-border/60 bg-panel-raised/40 p-3 !shadow-none"
                 >
                   <Identicon seed={entry.walletAddress} size={32} />
                   <div className="flex min-w-0 flex-col gap-1">
