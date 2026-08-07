@@ -28,7 +28,8 @@ export function TickerBar() {
   const loop = [...filled, ...filled];
 
   return (
-    <section
+    <section className="container">
+    <div
       className="group relative w-full overflow-hidden py-4"
       style={{
         maskImage: "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
@@ -57,6 +58,7 @@ export function TickerBar() {
           </div>
         ))}
       </div>
+    </div>
     </section>
   );
 }
